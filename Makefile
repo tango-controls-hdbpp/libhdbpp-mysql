@@ -10,7 +10,7 @@
 #LIBHDB_INC = /runtime/include
 #LIBHDB_INC = ../libhdb++
 
-include ../Make-hdb++.in
+include ../../Make-hdb++.in
 
 CFLAGS = -Wall -DRELEASE='"N$Name:  $ "' -I$(SQLIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC) -std=gnu++98
 #CFLAGS = -Wall -DRELEASE='"N$Name:  $ "' -I$(SQLIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC) -std=gnu++0x
