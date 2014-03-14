@@ -1,8 +1,7 @@
 
 include ../../Make-hdb++.in
 
-#CFLAGS = -Wall -DRELEASE='"N$Name:  $ "' -I$(SQLIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC) -std=gnu++98
-CFLAGS = -Wall -DRELEASE='"N$Name:  $ "' -I$(SQLIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC) -std=gnu++0x
+CXXFLAGS += -Wall -DRELEASE='"N$Name:  $ "' -I$(SQLIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC)
 CXX = g++
 
 
@@ -37,7 +36,7 @@ lib/LibHdb++MySQL: lib obj obj/LibHdb++MySQL.o
 	ar rcs lib/$(LIBRARY) obj/LibHdb++MySQL.o
 
 obj/LibHdb++MySQL.o: src/LibHdb++MySQL.cpp src/LibHdb++MySQL.h $(LIBHDB_INC)/LibHdb++.h
-	$(CXX) $(CFLAGS) -fPIC -c src/LibHdb++MySQL.cpp -o $@
+	$(CXX) $(CXXFLAGS) -fPIC -c src/LibHdb++MySQL.cpp -o $@
 
 clean:
 	rm -f obj/*.o lib/*.so* lib/*.a
