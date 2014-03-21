@@ -118,17 +118,17 @@ public:
 	HdbPPMySQL(string host, string user, string password, string dbname, int port);
 
 	//void connect_db(string host, string user, string password, string dbname);
-	int find_attr_id(vector<string> attr, vector<int> &ID);
 	int find_attr_id(string facility, string attr_name, int &ID);
-	virtual int insert_Attr(Tango::EventData *data);
+	int find_attr_id_type(string facility, string attr_name, int &ID, string attr_type);
+	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
 	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	virtual int remove_Attr(string name);
 	virtual int start_Attr(string name);
 	virtual int stop_Attr(string name);
 
 private:
-	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type);
-	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, uint32_t dim_x, uint32_t dim_y, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type);
+	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type);
+	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type);
 };
 
 class HdbPPMySQLFactory : public DBFactory

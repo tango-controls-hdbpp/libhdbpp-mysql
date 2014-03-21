@@ -27,7 +27,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-#include <netdb.h> //for gethostbyname
+#include <netdb.h> //for getaddrinfo
 
 
 #ifndef LIB_BUILDTIME
@@ -76,70 +76,12 @@ HdbPPMySQL::~HdbPPMySQL()
 	delete dbp;
 }
 
-
-int HdbPPMySQL::find_attr_id(vector<string> attr, vector<int> &ID)
-{
-	ostringstream query_str;
-	//example: 
-	//SELECT ID FROM adt
-	//	WHERE full_name IN (a/b/c/d, e/f/g/h)
-
-
-	//TODO: concatenate facility and full_name? ... WHERE CONCAT(ADT_COL_FACILITY, ADT_COL_FULL_NAME) IN (...)
-	query_str << 
-		"SELECT " << CONF_COL_ID << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
-			" WHERE LOWER(" << CONF_COL_NAME << ") IN ('";
-			
-	for(vector<string>::iterator it=attr.begin(); it != attr.end(); it++)
-	{
-		query_str << *it;
-		if(it+1 != attr.end())
-			query_str << "','";
-	}
-			
-	query_str << "') ";
-	
-	if(mysql_query(dbp, query_str.str().c_str()))
-	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
-		return -1;
-	}
-	else
-	{
-		MYSQL_RES *res;
-		MYSQL_ROW row;
-		/*res = mysql_use_result(dbp);
-		my_ulonglong num_found = mysql_num_rows(res);
-		if(num_found == 0)*/
-		res = mysql_store_result(dbp);
-		if(res == NULL)
-		{
-			cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
-			return -1;
-		}
-#ifdef _LIB_DEBUG
-		else
-		{
-			cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
-		}
-#endif
-		while ((row = mysql_fetch_row(res)))
-		{
-			ID.push_back(atoi(row[0]));
-		}	
-		mysql_free_result(res);
-	}
-	return 0;
-}
-
 int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 {
 	ostringstream query_str;
 	//string facility_no_domain = remove_domain(facility);
 	//string facility_with_domain = add_domain(facility);
 
-
-	//TODO: concatenate facility and full_name? ... WHERE CONCAT(ADT_COL_FACILITY, ADT_COL_FULL_NAME) IN (...)
 	query_str << 
 		"SELECT " << CONF_COL_ID << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
 			" WHERE " << CONF_COL_NAME << " = 'tango://" << facility<<"/"<<attr << "'";
@@ -187,7 +129,72 @@ int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 	return 0;
 }
 
-int HdbPPMySQL::insert_Attr(Tango::EventData *data)
+int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string attr_type)
+{
+	ostringstream query_str;
+//	string facility_no_domain = remove_domain(facility);
+	string db_type;
+
+	query_str << 
+		"SELECT " << CONF_COL_ID << "," << CONF_COL_TYPE << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
+			" WHERE " << CONF_COL_NAME << " = 'tango://" << facility<<"/"<<attr << "'";
+	
+	if(mysql_query(dbp, query_str.str().c_str()))
+	{
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << " err="<<mysql_error(dbp)<< endl;
+		return -1;
+	}
+	else
+	{
+		MYSQL_RES *res;
+		MYSQL_ROW row;
+		/*res = mysql_use_result(dbp);
+		my_ulonglong num_found = mysql_num_rows(res);
+		if(num_found == 0)*/
+		res = mysql_store_result(dbp);
+		if(res == NULL)
+		{
+			cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
+			return -1;
+		}
+#ifdef _LIB_DEBUG
+		else
+		{
+			my_ulonglong num_found = mysql_num_rows(res);
+			if(num_found > 0)
+			{
+				cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
+			}
+			else
+			{
+				cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
+				mysql_free_result(res);
+				return -1;
+			}
+		}
+#endif
+		while ((row = mysql_fetch_row(res)))
+		{
+			ID = atoi(row[0]);
+			db_type = row[1];
+		}
+		mysql_free_result(res);
+
+		if(db_type != attr_type)
+		{
+			cout << __func__<< ": FOUND ID="<<ID<<" but different type: attr_type="<<attr_type<<"-db_type="<<db_type << endl;
+			return -2;
+		}
+		else
+		{
+			cout << __func__<< ": FOUND ID="<<ID<<" with SAME type: attr_type="<<attr_type<<"-db_type="<<db_type << endl;
+			return 0;
+		}
+	}
+	return 0;
+}
+
+int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type)
 {
 	int ret = -1;
 #ifdef _LIB_DEBUG
@@ -196,7 +203,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 	try
 	{
 		string attr_name = data->attr_name;
-		double	ev_time = data->attr_value->get_date().tv_sec + (double)data->attr_value->get_date().tv_usec/1.0e6;
+		double	ev_time;
 		double	rcv_time = data->get_date().tv_sec + (double)data->get_date().tv_usec/1.0e6;
 
 		vector<double>	vdval_r;
@@ -207,7 +214,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 
 		vector<int8_t>	vi8val_r;
 		vector<int8_t>	vi8val_w;
-
+#if 0
 		Tango::AttributeDimension attr_w_dim = data->attr_value->get_w_dimension();
 		Tango::AttributeDimension attr_r_dim = data->attr_value->get_r_dimension();
 		int data_type = data->attr_value->get_type();
@@ -215,13 +222,42 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 		Tango::AttrDataFormat data_format = (attr_w_dim.dim_x <= 1 && attr_w_dim.dim_y <= 1 && attr_r_dim.dim_x <= 1 && attr_r_dim.dim_y <= 1) ?
 					Tango::SCALAR : Tango::SPECTRUM;	//TODO
 		int write_type = (attr_w_dim.dim_x == 0 && attr_w_dim.dim_y == 0) ? Tango::READ : Tango::READ_WRITE;	//TODO
+#else
+		Tango::AttributeDimension attr_w_dim;
+		Tango::AttributeDimension attr_r_dim;
+		int data_type = ev_data_type.data_type;
+		Tango::AttrDataFormat data_format = ev_data_type.data_format;
+		int write_type = ev_data_type.write_type;
+		int max_dim_x = ev_data_type.max_dim_x;
+		int max_dim_y = ev_data_type.max_dim_y;
+#endif
+
+		bool isNull = false;
+		if(data->err || data->attr_value->is_empty() || data->attr_value->get_quality() == Tango::ATTR_INVALID)
+		{
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": going to archive as NULL..." << endl;
+#endif
+			isNull = true;
+		}
 #ifdef _LIB_DEBUG
 		cout << __func__<< ": data_type="<<data_type<<" data_format="<<data_format<<" write_type="<<write_type << endl;
-//		cout << __func__<< ": data_type DEV_DOUBLE="<<Tango::DEV_DOUBLE<<" DEV_LONG="<<Tango::DEV_LONG<<" DEV_STATE="<<Tango::DEV_STATE<<" DEV_STRING="<<Tango::DEV_STRING << endl;
-//		cout << __func__<< ": data_format SCALAR="<<Tango::SCALAR<<" SPECTRUM="<<Tango::SPECTRUM<<" IMAGE="<<Tango::IMAGE << endl;
-//		cout << __func__<< ": write_type READ="<<Tango::READ<<" READ_WRITE="<<Tango::READ_WRITE << endl;
-		cout << __func__<< ": ev_time="<<fixed<<ev_time<<" rcv_time="<<rcv_time << endl;
 #endif
+		if(!isNull)
+		{
+			attr_w_dim = data->attr_value->get_w_dimension();
+			attr_r_dim = data->attr_value->get_r_dimension();
+			ev_time = data->attr_value->get_date().tv_sec + (double)data->attr_value->get_date().tv_usec/1.0e6;
+		}
+		else
+		{
+			attr_r_dim.dim_x = max_dim_x;
+			attr_w_dim.dim_x = max_dim_x;
+			attr_r_dim.dim_y = max_dim_y;
+			attr_w_dim.dim_y = max_dim_y;
+			ev_time = rcv_time;		//TODO: OK?
+		}
+
 		string table_name = get_table_name(data_type, data_format, write_type);
 
 		switch(data_type)
@@ -229,12 +265,12 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 		case Tango::DEV_DOUBLE:
 		{
 			if((write_type == Tango::READ && data->attr_value->extract_read(vdval_r)) ||
-				(write_type != Tango::READ && data->attr_value->extract_read(vdval_r) && data->attr_value->extract_set(vdval_w)))
+				(write_type != Tango::READ && data->attr_value->extract_read(vdval_r) && data->attr_value->extract_set(vdval_w)))	//TODO: WO
 			{
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<double>(attr_name, vdval_r, vdval_w, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
+					ret = store_scalar<double>(attr_name, vdval_r, vdval_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
 				else
-					ret = store_array<double>(attr_name, vdval_r, vdval_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
+					ret = store_array<double>(attr_name, vdval_r, vdval_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
 			}
 			else
 			{
@@ -256,9 +292,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vdval_w.push_back((double)fval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<double>(attr_name, vdval_r, vdval_w, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
+					ret = store_scalar<double>(attr_name, vdval_r, vdval_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
 				else
-					ret = store_array<double>(attr_name, vdval_r, vdval_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
+					ret = store_array<double>(attr_name, vdval_r, vdval_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE);
 			}
 			else
 			{
@@ -280,9 +316,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi64val_w.push_back((int64_t)lval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -304,9 +340,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi64val_w.push_back((int64_t)ulval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -328,9 +364,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi64val_w.push_back((int64_t)l64val_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -352,9 +388,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi64val_w.push_back((int64_t)ul64val_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -376,9 +412,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi64val_w.push_back((int64_t)sval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -400,9 +436,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi64val_w.push_back((int64_t)usval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -424,9 +460,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi8val_w.push_back((int8_t)bval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
 			}
 			else
 			{
@@ -448,9 +484,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 					vi8val_w.push_back((int8_t)ucval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int8_t>(attr_name, vi8val_r, vi8val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
+					ret = store_scalar<int8_t>(attr_name, vi8val_r, vi8val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
 				else
-					ret = store_array<int8_t>(attr_name, vi8val_r, vi8val_w, attr_r_dim.dim_x, attr_r_dim.dim_y, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
+					ret = store_array<int8_t>(attr_name, vi8val_r, vi8val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
 			}
 			else
 			{
@@ -461,43 +497,34 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 		}
 		case Tango::DEV_STRING:
 		{
-			//TODO
-//			extract values and get only read ones.
-//			if(data->attr_value->get_type() == Tango::READ)	//TODO
-			if(attr_w_dim.dim_x == 0 && attr_w_dim.dim_y == 0)
+			if(write_type == Tango::READ)
 			{
-#ifndef _HDBEVENTDATA
 				vector<string>	ssval;
 				if (data->attr_value->extract_read(ssval))
 				{
-					//TODO
+					//TODO: to be implemented
+					return -1;//TODO: to be implemented
 				}
 				else
 				{
 					cout << __func__<<": failed to extract " << attr_name << endl;
 					return -1;
 				}
-#else
-				ret = store_string_RO(attr_name, data->ssval, time);
-#endif
 			}
 			else
 			{
-#ifndef _HDBEVENTDATA
 				vector<string>	ssval_r;
 				vector<string>	ssval_w;
 				if(data->attr_value->extract_read(ssval_r) && data->attr_value->extract_set(ssval_w))
 				{
-					//TODO
+					//TODO: to be implemented
+					return -1;//TODO: to be implemented
 				}
 				else
 				{
 					cout << __func__<<": failed to extract " << attr_name << endl;
 					return -1;
 				}
-#else
-				ret = store_string_RW(attr_name, data->ssval_r, data->ssval_w, time);
-#endif
 			}
 			break;
 		}
@@ -506,7 +533,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data)
 			Tango::DevState	st;
 			*data->attr_value >> st;
 			vi8val_r.push_back((int8_t)st);
-			ret = store_scalar<int8_t>(attr_name, vi8val_r, vi8val_w, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
+			ret = store_scalar<int8_t>(attr_name, vi8val_r, vi8val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
 			break;
 		}
 		default:
@@ -546,19 +573,27 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	facility = add_domain(facility);
 	string attr_name = get_only_attr_name(name);
 	cout<< __func__ << ": name="<<name<<" -> facility="<<facility<<" attr_name="<<attr_name<< endl;
-	int id=0;
-	int ret = find_attr_id(facility, attr_name, id);
-	if(ret == 0)
+	int id=-1;
+	string data_type = get_data_type(type, format, write_type);
+	int ret = find_attr_id_type(facility, attr_name, id, data_type);
+	//ID already present but different configuration (attribute type)
+	if(ret == -2)
 	{
 		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" already configured with ID="<<id << endl;
 		return -1;
 	}
 
-	string data_type = get_data_type(type, format, write_type);
+	//ID found and same configuration (attribute type): do nothing
+	if(ret == 0)
+	{
+		cout<< __func__ << ": ALREADY CONFIGURED with same configuration: "<<facility<<"/"<<attr_name<<" with ID="<<id << endl;
+		return 0;
+	}
+
 	//add domain name to fqdn
 	name = string("tango://")+facility+string("/")+attr_name;
 	insert_str <<
-		"INSERT INTO " << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE<<")" <<
+		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE<<")" <<
 			" VALUES ('" << name << "','" << data_type << "')";
 
 	if(mysql_query(dbp, insert_str.str().c_str()))
@@ -570,7 +605,7 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	//int last_id = mysql_insert_id(dbp);
 
 	insert_event_str <<
-		"INSERT INTO " << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
 			" VALUES (LAST_INSERT_ID(),'" << EVENT_ADD << "',NOW(6))";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
@@ -599,12 +634,12 @@ int HdbPPMySQL::start_Attr(string name)
 	int ret = find_attr_id(facility, attr_name, id);
 	if(ret < 0)
 	{
-		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" already NOT FOUND" << endl;
+		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" NOT FOUND" << endl;
 		return -1;
 	}
 
 	insert_event_str <<
-		"INSERT INTO " << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
 			" VALUES ("<<id<<",'" << EVENT_START << "',NOW(6))";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
@@ -627,12 +662,12 @@ int HdbPPMySQL::stop_Attr(string name)
 	int ret = find_attr_id(facility, attr_name, id);
 	if(ret < 0)
 	{
-		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" already NOT FOUND" << endl;
+		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" NOT FOUND" << endl;
 		return -1;
 	}
 
 	insert_event_str <<
-		"INSERT INTO " << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
 			" VALUES ("<<id<<",'" << EVENT_START << "',NOW(6))";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
@@ -646,7 +681,7 @@ int HdbPPMySQL::stop_Attr(string name)
 
 //=============================================================================
 //=============================================================================
-template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type)
+template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -655,20 +690,6 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	//if not already present in cache, look for ID in the DB
 	if(it == attr_ID_map.end())
 	{
-		/*vector<string> attributes;
-		vector<int> ID;
-		attributes.push_back(attr);
-		find_attr_id(attributes, ID);
-		if(ID.size() == 1)
-		{
-			attr_ID_map.insert(make_pair(attr,ID[0]));
-			it = attr_ID_map.find(attr);
-		}
-		else
-		{
-			cout << __func__<< ": ID not found!" << endl;
-			return -1;
-		}*/
 		int ID=-1;
 		string facility = get_only_tango_host(attr);
 		string attr_name = get_only_attr_name(attr);
@@ -692,16 +713,12 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	int ID=it->second;
 	ostringstream query_str;
 
-  //example:
-  //INSERT INTO attr_scalar_double_ro
-  //	(a/b/c/d, e/f/g/h)
-
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << table_name <<
 			" (" << SC_COL_ID << "," << SC_COL_INS_TIME << "," << SC_COL_RCV_TIME << "," <<
 			SC_COL_EV_TIME << "," << SC_COL_VALUE_R;
 
-	if(!(value_r.size()>=1 && value_w.size()==0))	//RW
+	if(!(write_type == Tango::READ))	//RW
 		query_str << "," << SC_COL_VALUE_W;
 
 	query_str << ")";
@@ -709,7 +726,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	query_str << " VALUES (?,NOW(6),FROM_UNIXTIME(?),"
 			<< "FROM_UNIXTIME(?),?";
 
-	if(!(value_r.size()>=1 && value_w.size()==0))	//RW
+	if(!(write_type == Tango::READ))	//RW
 		query_str << ",?";
 
 	query_str << ")";
@@ -755,19 +772,19 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	{
 		if(std::isnan(value_w[0]) || std::isinf(value_w[0]))
 		{
-			is_null[0]=1;
-			value_data[0]=0;	//useless
+			is_null[1]=1;
+			value_data[1]=0;	//useless
 		}
 		else
 		{
-			is_null[0]=0;
-			value_data[0] = value_w[0];
+			is_null[1]=0;
+			value_data[1] = value_w[0];
 		}
 	}
 	else
 	{
-		is_null[0]=1;
-		value_data[0]=0;	//useless
+		is_null[1]=1;
+		value_data[1]=0;	//useless
 	}
 
 	int_data[0] = ID;
@@ -833,7 +850,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 
 //=============================================================================
 //=============================================================================
-template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> value_r, vector<Type> value_w, uint32_t dim_x, uint32_t dim_y, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type)
+template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -842,20 +859,6 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	//if not already present in cache, look for ID in the DB
 	if(it == attr_ID_map.end())
 	{
-		/*vector<string> attributes;
-		vector<int> ID;
-		attributes.push_back(attr);
-		find_attr_id(attributes, ID);
-		if(ID.size() == 1)
-		{
-			attr_ID_map.insert(make_pair(attr,ID[0]));
-			it = attr_ID_map.find(attr);
-		}
-		else
-		{
-			cout << __func__<< ": ID not found!" << endl;
-			return -1;
-		}*/
 		int ID=-1;
 		string facility = get_only_tango_host(attr);
 		string attr_name = get_only_attr_name(attr);
@@ -880,10 +883,6 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	uint32_t max_size = (value_r.size() > value_w.size()) ? value_r.size() : value_w.size();
 	ostringstream query_str;
 
-  //example:
-  //INSERT INTO attr_scalar_double_ro
-  //	(a/b/c/d, e/f/g/h)
-
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << table_name <<
 			" (" << ARR_COL_ID << "," << ARR_COL_INS_TIME << "," << ARR_COL_RCV_TIME << "," <<
@@ -902,14 +901,14 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		query_str << "(?,NOW(6),FROM_UNIXTIME(?),"
 			<< "FROM_UNIXTIME(?),?,?,?,?";
 
-		if(!(value_r.size()>=1 && value_w.size()==0))	//RW
+		if(!(write_type == Tango::READ))	//RW
 			query_str << ",?";
 
 		query_str << ")";
 		if(idx < max_size-1)
 			query_str << ",";
 	}
-	int param_count_single = (value_r.size()>=1 && value_w.size()==0) ? 7 : 8;	//param in single value insert
+	int param_count_single = (write_type == Tango::READ) ? 7 : 8;	//param in single value insert
 	int param_count = param_count_single*max_size;								//total param
 	MYSQL_STMT	*pstmt;
 	MYSQL_BIND	*plog_bind = new MYSQL_BIND[param_count];
@@ -972,8 +971,8 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 
 		int_data[4*idx+0] = ID;
 		int_data[4*idx+1] = idx;
-		int_data[4*idx+2] = dim_x;
-		int_data[4*idx+3] = dim_y;
+		int_data[4*idx+2] = attr_r_dim.dim_x;	//TODO: missing w sizes
+		int_data[4*idx+3] = attr_r_dim.dim_y;	//TODO: missing w sizes
 		double_data[2*idx+0] = rcv_time;
 		double_data[2*idx+1] = ev_time;
 
@@ -1013,7 +1012,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		plog_bind[param_count_single*idx+6].is_null= &is_null[2*idx+0];
 		plog_bind[param_count_single*idx+6].length= 0;
 
-		if(!(value_r.size()>=1 && value_w.size()==0))
+		if(!(write_type == Tango::READ))
 		{
 			plog_bind[param_count_single*idx+7].buffer_type= mysql_value_type;
 			plog_bind[param_count_single*idx+7].buffer= (void *)&value_data[2*idx+1];
