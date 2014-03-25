@@ -127,8 +127,8 @@ public:
 	virtual int stop_Attr(string name);
 
 private:
-	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type);
-	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type);
+	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
+	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
 };
 
 class HdbPPMySQLFactory : public DBFactory
