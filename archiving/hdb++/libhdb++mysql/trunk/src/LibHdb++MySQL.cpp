@@ -37,7 +37,7 @@
 const char version_string[] = "$Build: " LIB_BUILDTIME " $";
 static const char __FILE__rev[] = __FILE__ " $Revision: 1.2 $";
 
-#define _LIB_DEBUG
+//#define _LIB_DEBUG
 
 HdbPPMySQL::HdbPPMySQL(string host, string user, string password, string dbname, int port)
 {
@@ -961,6 +961,16 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		if(idx < max_size-1)
 			query_str << ",";
 	}
+	if(max_size == 0)
+	{
+		query_str << "(?,NOW(6),FROM_UNIXTIME(?),"
+			<< "FROM_UNIXTIME(?),?,?,?,?";
+
+		if(!(write_type == Tango::READ))	//RW
+			query_str << ",?";
+
+		query_str << ")";
+	}
 	int param_count_single = (write_type == Tango::READ) ? 7 : 8;	//param in single value insert
 	int param_count = param_count_single*max_size;								//total param
 	MYSQL_STMT	*pstmt;
@@ -1021,6 +1031,67 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 			is_null[2*idx+1]=1;
 			value_data[2*idx+1]=0;	//useless
 		}
+
+		int_data[4*idx+0] = ID;
+		int_data[4*idx+1] = idx;
+		int_data[4*idx+2] = attr_r_dim.dim_x;	//TODO: missing w sizes
+		int_data[4*idx+3] = attr_r_dim.dim_y;	//TODO: missing w sizes
+		double_data[2*idx+0] = rcv_time;
+		double_data[2*idx+1] = ev_time;
+
+
+		plog_bind[param_count_single*idx+0].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[param_count_single*idx+0].buffer= (void *)&int_data[4*idx+0];
+		plog_bind[param_count_single*idx+0].is_null= 0;
+		plog_bind[param_count_single*idx+0].length= 0;
+
+		plog_bind[param_count_single*idx+1].buffer_type= MYSQL_TYPE_DOUBLE;
+		plog_bind[param_count_single*idx+1].buffer= (void *)&double_data[2*idx+0];
+		plog_bind[param_count_single*idx+1].is_null= 0;
+		plog_bind[param_count_single*idx+1].length= 0;
+
+		plog_bind[param_count_single*idx+2].buffer_type= MYSQL_TYPE_DOUBLE;
+		plog_bind[param_count_single*idx+2].buffer= (void *)&double_data[2*idx+1];
+		plog_bind[param_count_single*idx+2].is_null= 0;
+		plog_bind[param_count_single*idx+2].length= 0;
+
+		plog_bind[param_count_single*idx+3].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[param_count_single*idx+3].buffer= (void *)&int_data[4*idx+1];
+		plog_bind[param_count_single*idx+3].is_null= 0;
+		plog_bind[param_count_single*idx+3].length= 0;
+
+		plog_bind[param_count_single*idx+4].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[param_count_single*idx+4].buffer= (void *)&int_data[4*idx+2];
+		plog_bind[param_count_single*idx+4].is_null= 0;
+		plog_bind[param_count_single*idx+4].length= 0;
+
+		plog_bind[param_count_single*idx+5].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[param_count_single*idx+5].buffer= (void *)&int_data[4*idx+3];
+		plog_bind[param_count_single*idx+5].is_null= 0;
+		plog_bind[param_count_single*idx+5].length= 0;
+
+		plog_bind[param_count_single*idx+6].buffer_type= mysql_value_type;
+		plog_bind[param_count_single*idx+6].buffer= (void *)&value_data[2*idx+0];
+		plog_bind[param_count_single*idx+6].is_null= &is_null[2*idx+0];
+		plog_bind[param_count_single*idx+6].length= 0;
+
+		if(!(write_type == Tango::READ))
+		{
+			plog_bind[param_count_single*idx+7].buffer_type= mysql_value_type;
+			plog_bind[param_count_single*idx+7].buffer= (void *)&value_data[2*idx+1];
+			plog_bind[param_count_single*idx+7].is_null= &is_null[2*idx+1];
+			plog_bind[param_count_single*idx+7].length= 0;
+		}
+	}
+
+	if(max_size == 0)
+	{
+		int idx = 0;
+
+		is_null[2*idx+0]=1;
+		value_data[2*idx+0]=0;	//useless
+		is_null[2*idx+1]=1;
+		value_data[2*idx+1]=0;	//useless
 
 		int_data[4*idx+0] = ID;
 		int_data[4*idx+1] = idx;
@@ -1314,7 +1385,7 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 
 	query_str << " VALUES ";
 
-	for(int idx=0; idx < max_size; idx++)
+	for(unsigned int idx=0; idx < max_size; idx++)
 	{
 		query_str << "(?,NOW(6),FROM_UNIXTIME(?),"
 			<< "FROM_UNIXTIME(?),?,?,?,?";
