@@ -35,7 +35,7 @@
 #endif
 
 const char version_string[] = "$Build: " LIB_BUILDTIME " $";
-static const char __FILE__rev[] = __FILE__ " $Revision: 1.2 $";
+static const char __FILE__rev[] = __FILE__ " $Id: $";
 
 //#define _LIB_DEBUG
 
