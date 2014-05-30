@@ -721,7 +721,7 @@ int HdbPPMySQL::stop_Attr(string name)
 
 	insert_event_str <<
 		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
-			" VALUES ("<<id<<",'" << EVENT_START << "',NOW(6))";
+			" VALUES ("<<id<<",'" << EVENT_STOP << "',NOW(6))";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
 	{
