@@ -120,11 +120,15 @@ int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 			}
 		}
 #endif
+		bool found = false;
 		while ((row = mysql_fetch_row(res)))
 		{
+			found = true;
 			ID = atoi(row[0]);
 		}	
 		mysql_free_result(res);
+		if(!found)
+			return -1;
 	}
 	return 0;
 }
@@ -173,12 +177,16 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 			}
 		}
 #endif
+		bool found = false;
 		while ((row = mysql_fetch_row(res)))
 		{
+			found = true;
 			ID = atoi(row[0]);
 			db_type = row[1];
 		}
 		mysql_free_result(res);
+		if(!found)
+			return -1;
 
 		if(db_type != attr_type)
 		{
