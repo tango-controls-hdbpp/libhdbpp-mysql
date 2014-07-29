@@ -519,9 +519,9 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 					vi8val_w.push_back((int8_t)bval_w[i]);
 
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_scalar<int8_t>(attr_name, vi8val_r, vi64val_w, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
 				else
-					ret = store_array<int64_t>(attr_name, vi64val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG);
+					ret = store_array<int8_t>(attr_name, vi8val_r, vi64val_w, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY);
 			}
 			else
 			{
