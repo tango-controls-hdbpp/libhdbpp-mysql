@@ -81,11 +81,27 @@ int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 	ostringstream query_str;
 	//string facility_no_domain = remove_domain(facility);
 	//string facility_with_domain = add_domain(facility);
-
+#ifndef _MULTI_TANGO_HOST
 	query_str << 
 		"SELECT " << CONF_COL_ID << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
 			" WHERE " << CONF_COL_NAME << " = 'tango://" << facility<<"/"<<attr << "'";
-	
+#else
+	vector<string> facilities;
+	string_explode(facility,",",&facilities);
+
+	query_str << 
+		"SELECT " << CONF_COL_ID << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
+			" WHERE (";
+
+	for(vector<string>::iterator it = facilities.begin(); it != facilities.end(); it++)
+	{
+		query_str << CONF_COL_NAME<< " LIKE 'tango://%"<<*it<<"%/"<<attr<< "'";
+		if(it != facilities.end() - 1)
+			query_str << " OR ";
+	}
+	query_str << ")";
+#endif
+
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
 		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
@@ -138,10 +154,26 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 	ostringstream query_str;
 //	string facility_no_domain = remove_domain(facility);
 	string db_type;
-
+#ifndef _MULTI_TANGO_HOST
 	query_str << 
 		"SELECT " << CONF_COL_ID << "," << CONF_COL_TYPE << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
 			" WHERE " << CONF_COL_NAME << " = 'tango://" << facility<<"/"<<attr << "'";
+#else
+	vector<string> facilities;
+	string_explode(facility,",",&facilities);
+
+	query_str << 
+		"SELECT " << CONF_COL_ID << "," << CONF_COL_TYPE << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
+			" WHERE (";
+
+	for(vector<string>::iterator it = facilities.begin(); it != facilities.end(); it++)
+	{
+		query_str << CONF_COL_NAME<< " LIKE 'tango://%"<<*it<<"%/"<<attr<< "'";
+		if(it != facilities.end() - 1)
+			query_str << " OR ";
+	}
+	query_str << ")";
+#endif
 	
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
@@ -631,7 +663,9 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	ostringstream insert_str;
 	ostringstream insert_event_str;
 	string facility = get_only_tango_host(name);
+#ifndef _MULTI_TANGO_HOST
 	facility = add_domain(facility);
+#endif
 	string attr_name = get_only_attr_name(name);
 	cout<< __func__ << ": name="<<name<<" -> facility="<<facility<<" attr_name="<<attr_name<< endl;
 	int id=-1;
@@ -688,7 +722,9 @@ int HdbPPMySQL::start_Attr(string name)
 {
 	ostringstream insert_event_str;
 	string facility = get_only_tango_host(name);
+#ifndef _MULTI_TANGO_HOST
 	facility = add_domain(facility);
+#endif
 	string attr_name = get_only_attr_name(name);
 
 	int id=0;
@@ -716,7 +752,9 @@ int HdbPPMySQL::stop_Attr(string name)
 {
 	ostringstream insert_event_str;
 	string facility = get_only_tango_host(name);
+#ifndef _MULTI_TANGO_HOST
 	facility = add_domain(facility);
+#endif
 	string attr_name = get_only_attr_name(name);
 
 	int id=0;
@@ -1572,7 +1610,7 @@ string HdbPPMySQL::get_only_tango_host(string str)
 		return th;
 	}
 }
-
+#ifndef _MULTI_TANGO_HOST
 //=============================================================================
 //=============================================================================
 string HdbPPMySQL::remove_domain(string str)
@@ -1601,7 +1639,65 @@ string HdbPPMySQL::remove_domain(string str)
 		return th;
 	}
 }
-
+#else
+/*
+//=============================================================================
+//=============================================================================
+string HdbPPMySQL::remove_domain(string str)
+{
+	string result="";
+	string facility(str);
+	vector<string> facilities;
+	if(str.find(",") == string::npos)
+	{
+		facilities.push_back(facility);
+	}
+	else
+	{
+		string_explode(facility,",",&facilities);
+	}
+	for(vector<string>::iterator it = facilities.begin(); it != facilities.end(); it++)
+	{
+		string::size_type	end1 = it->find(".");
+		if (end1 == string::npos)
+		{
+			result += *it;
+			if(it != facilities.end()-1)
+				result += ",";
+			continue;
+		}
+		else
+		{
+			string::size_type	start = it->find("tango://");
+			if (start == string::npos)
+			{
+				start = 0;
+			}
+			else
+			{
+				start = 8;	//tango:// len
+			}
+			string::size_type	end2 = it->find(":", start);
+			if(end1 > end2)	//'.' not in the tango host part
+			{
+				result += *it;
+				if(it != facilities.end()-1)
+					result += ",";
+				continue;
+			}
+			string th = it->substr(0, end1);
+			th += it->substr(end2, it->size()-end2);
+			result += th;
+			if(it != facilities.end()-1)
+				result += ",";
+			continue;
+		}
+	}
+	return result;
+}
+*/
+#endif
+#ifndef _MULTI_TANGO_HOST
 //=============================================================================
 //=============================================================================
 string HdbPPMySQL::add_domain(string str)
@@ -1627,7 +1723,7 @@ string HdbPPMySQL::add_domain(string str)
 //		hints.ai_family = AF_INET; // use AF_INET6 to force IPv6
 //		hints.ai_flags = AI_CANONNAME|AI_CANONIDN;
 		memset(&hints, 0, sizeof hints);
-		hints.ai_family = AF_UNSPEC; /*either IPV4 or IPV6*/
+		hints.ai_family = AF_UNSPEC; //either IPV4 or IPV6
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_flags = AI_CANONNAME;
 		struct addrinfo *result, *rp;
@@ -1651,6 +1747,24 @@ string HdbPPMySQL::add_domain(string str)
 		return str;
 	}
 }
+#else
+void HdbPPMySQL::string_explode(string str, string separator, vector<string>* results)
+{
+	string::size_type found;
+
+	found = str.find_first_of(separator);
+	while(found != string::npos) {
+		if(found > 0) {
+			results->push_back(str.substr(0,found));
+		}
+		str = str.substr(found+1);
+		found = str.find_first_of(separator);
+	}
+	if(str.length() > 0) {
+		results->push_back(str);
+	}
+}
+#endif
 
 //=============================================================================
 //=============================================================================

@@ -106,8 +106,12 @@ private:
 	
 	string get_only_attr_name(string str);
 	string get_only_tango_host(string str);
+#ifndef _MULTI_TANGO_HOST
 	string remove_domain(string facility);
 	string add_domain(string facility);
+#else
+	void string_explode(string str, string separator, vector<string>* results);
+#endif
 	string get_data_type(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	string get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 
