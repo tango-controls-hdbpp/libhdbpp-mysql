@@ -73,11 +73,12 @@
 
 #define SC_COL_ID					"att_conf_id"
 #define SC_COL_INS_TIME				"insert_time"
-#define SC_COL_RCV_TIME				"recv_time"
-#define SC_COL_EV_TIME				"event_time"
+#define SC_COL_RCV_TIME				"event_time"
+#define SC_COL_EV_TIME				"data_time"
 #define SC_COL_VALUE_R				"value_r"
 #define SC_COL_VALUE_W				"value_w"
 #define SC_COL_QUALITY				"quality"
+#define SC_COL_ERROR_DESC			"error_desc"
 
 
 
@@ -87,14 +88,15 @@
 
 #define ARR_COL_ID					"att_conf_id"
 #define ARR_COL_INS_TIME			"insert_time"
-#define ARR_COL_RCV_TIME			"recv_time"
-#define ARR_COL_EV_TIME				"event_time"
+#define ARR_COL_RCV_TIME			"event_time"
+#define ARR_COL_EV_TIME				"data_time"
 #define ARR_COL_VALUE_R				"value_r"
 #define ARR_COL_VALUE_W				"value_w"
 #define ARR_COL_IDX					"idx"
 #define ARR_COL_DIMX				"dim_x"
 #define ARR_COL_DIMY				"dim_y"
 #define ARR_COL_QUALITY				"quality"
+#define ARR_COL_ERROR_DESC			"error_desc"
 
 
 
@@ -133,10 +135,10 @@ public:
 	virtual int stop_Attr(string name);
 
 private:
-	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
-	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
-	int store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull=false);
-	int store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
+	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
+	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
+	int store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull=false);
+	int store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
 };
 
 class HdbPPMySQLFactory : public DBFactory
