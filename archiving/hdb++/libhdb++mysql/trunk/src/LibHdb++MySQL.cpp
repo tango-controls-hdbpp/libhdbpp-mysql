@@ -37,7 +37,7 @@
 const char version_string[] = "$Build: " LIB_BUILDTIME " $";
 static const char __FILE__rev[] = __FILE__ " $Id: $";
 
-#define _LIB_DEBUG
+//#define _LIB_DEBUG
 
 HdbPPMySQL::HdbPPMySQL(string host, string user, string password, string dbname, int port)
 {
@@ -667,6 +667,195 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 	return ret;
 }
 
+int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type)
+{
+	int ret = -1;
+#ifdef _LIB_DEBUG
+//	cout << __func__<< ": entering..." << endl;
+#endif
+	try
+	{
+		string attr = data->attr_name;
+		double	ev_time = data->get_date().tv_sec + (double)data->get_date().tv_usec/1.0e6;
+		string error_desc("");
+
+
+		map<string,int>::iterator it = attr_ID_map.find(attr);
+		//if not already present in cache, look for ID in the DB
+		if(it == attr_ID_map.end())
+		{
+			int ID=-1;
+			string facility = get_only_tango_host(attr);
+			string attr_name = get_only_attr_name(attr);
+			find_attr_id(facility, attr_name, ID);
+			if(ID != -1)
+			{
+				attr_ID_map.insert(make_pair(attr,ID));
+				it = attr_ID_map.find(attr);
+			}
+			else
+			{
+				cout << __func__<< ": ID not found!" << endl;
+				return -1;
+			}
+		}
+		if(it == attr_ID_map.end())
+		{
+			cout << __func__<< ": ID not found for attr="<<attr << endl;
+			return -1;
+		}
+		int ID=it->second;
+		ostringstream query_str;
+
+		query_str <<
+			"INSERT INTO " << m_dbname << "." << PARAM_TABLE_NAME <<
+				" (" << PARAM_COL_ID << "," << PARAM_COL_INS_TIME << "," << PARAM_COL_EV_TIME << "," <<
+				PARAM_COL_LABEL << "," << PARAM_COL_UNIT << "," << PARAM_COL_STANDARDUNIT << "," <<
+				PARAM_COL_DISPLAYUNIT << "," << PARAM_COL_FORMAT << "," << PARAM_COL_ARCHIVERELCHANGE << "," <<
+				PARAM_COL_ARCHIVEABSCHANGE << "," << PARAM_COL_ARCHIVEPERIOD << ")";
+
+		query_str << " VALUES (?,NOW(6),FROM_UNIXTIME(?)," <<
+				"?,?,?," <<
+				"?,?,?," <<
+				"?,?)" ;
+
+		MYSQL_STMT	*pstmt;
+		MYSQL_BIND	plog_bind[10];
+		double		double_data;
+		int			int_data;
+		string		param_data[8];
+		unsigned long param_data_len[8];
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			return -1;
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			cout << __func__<< ": mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << endl;
+			return -1;
+		}
+
+		int_data = ID;
+		double_data = ev_time;
+		param_data[0] = data->attr_conf->label;
+		param_data_len[0] = param_data[0].length();
+		param_data[1] = data->attr_conf->unit;
+		param_data_len[1] = param_data[1].length();
+		param_data[2] = data->attr_conf->standard_unit;
+		param_data_len[2] = param_data[2].length();
+		param_data[3] = data->attr_conf->display_unit;
+		param_data_len[3] = param_data[3].length();
+		param_data[4] = data->attr_conf->format;
+		param_data_len[4] = param_data[4].length();
+		param_data[5] = data->attr_conf->events.arch_event.archive_rel_change;
+		param_data_len[5] = param_data[5].length();
+		param_data[6] = data->attr_conf->events.arch_event.archive_abs_change;
+		param_data_len[6] = param_data[6].length();
+		param_data[7] = data->attr_conf->events.arch_event.archive_period;
+		param_data_len[7] = param_data[7].length();
+
+		memset(plog_bind, 0, sizeof(plog_bind));
+
+		plog_bind[0].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[0].buffer= (void *)&int_data;
+		plog_bind[0].is_null= 0;
+		plog_bind[0].length= 0;
+
+		plog_bind[1].buffer_type= MYSQL_TYPE_DOUBLE;
+		plog_bind[1].buffer= (void *)&double_data;
+		plog_bind[1].is_null= 0;
+		plog_bind[1].length= 0;
+
+		plog_bind[2].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[2].buffer= (void *)param_data[0].c_str();	//TODO: escape
+		plog_bind[2].is_null= 0;
+		plog_bind[2].length= &param_data_len[0];
+
+		plog_bind[3].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[3].buffer= (void *)param_data[1].c_str();	//TODO: escape
+		plog_bind[3].is_null= 0;
+		plog_bind[3].length= &param_data_len[1];
+
+		plog_bind[4].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[4].buffer= (void *)param_data[2].c_str();	//TODO: escape
+		plog_bind[4].is_null= 0;
+		plog_bind[4].length= &param_data_len[2];
+
+		plog_bind[5].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[5].buffer= (void *)param_data[3].c_str();	//TODO: escape
+		plog_bind[5].is_null= 0;
+		plog_bind[5].length= &param_data_len[3];
+
+		plog_bind[6].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[6].buffer= (void *)param_data[4].c_str();	//TODO: escape
+		plog_bind[6].is_null= 0;
+		plog_bind[6].length= &param_data_len[4];
+
+		plog_bind[7].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[7].buffer= (void *)param_data[5].c_str();	//TODO: escape
+		plog_bind[7].is_null= 0;
+		plog_bind[7].length= &param_data_len[5];
+
+		plog_bind[8].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[8].buffer= (void *)param_data[6].c_str();	//TODO: escape
+		plog_bind[8].is_null= 0;
+		plog_bind[8].length= &param_data_len[6];
+
+		plog_bind[9].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[9].buffer= (void *)param_data[7].c_str();	//TODO: escape
+		plog_bind[9].is_null= 0;
+		plog_bind[9].length= &param_data_len[7];
+
+		if (mysql_stmt_bind_param(pstmt, plog_bind))
+		{
+			cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;
+			return -1;
+		}
+
+		if (mysql_stmt_execute(pstmt))
+		{
+			cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << endl;
+			return -1;
+		}
+#ifdef _LIB_DEBUG
+		else
+		{
+			cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
+		}
+#endif
+
+	/*		if (paffected_rows != 1)
+				DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
+		if (mysql_stmt_close(pstmt))
+		{
+			cout << __func__<< ": failed while closing the statement" << endl;
+			return -1;
+		}
+	}
+	catch(Tango::DevFailed &e)
+	{
+
+		cout << "Exception on " << data->attr_name << ":" << endl;
+
+		for (unsigned int i=0; i<e.errors.length(); i++)
+		{
+			cout << e.errors[i].reason << endl;
+			cout << e.errors[i].desc << endl;
+			cout << e.errors[i].origin << endl;
+		}
+
+		cout << endl;
+	}
+#ifdef _LIB_DEBUG
+//	cout << __func__<< ": exiting... ret="<<ret << endl;
+#endif
+	return ret;
+}
+
 int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/)
 {
 	ostringstream insert_str;
@@ -945,7 +1134,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	plog_bind[6].buffer= (void *)&value_data[1];
 	plog_bind[6].is_null= &is_null[1];
 	plog_bind[6].length= 0;
-	cout << __func__<< ": storing quality="<<quality<< " is_null[0]="<<(int)is_null[0]<<" is_null[1]="<<(int)is_null[1]<<" ID="<<ID<<" query="<< query_str.str()<< endl;
+
 	if (mysql_stmt_bind_param(pstmt, plog_bind))
 	{
 		cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;

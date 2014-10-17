@@ -99,6 +99,21 @@
 #define ARR_COL_ERROR_DESC			"error_desc"
 
 
+//######## att_parameter ########
+#define PARAM_TABLE_NAME				"att_parameter"
+#define PARAM_COL_ID					"att_conf_id"
+#define PARAM_COL_INS_TIME				"insert_time"
+#define PARAM_COL_EV_TIME				"event_time"
+#define PARAM_COL_LABEL					"label"
+#define PARAM_COL_UNIT					"unit"
+#define PARAM_COL_STANDARDUNIT			"standard_unit"
+#define PARAM_COL_DISPLAYUNIT			"display_unit"
+#define PARAM_COL_FORMAT				"format"
+#define PARAM_COL_ARCHIVERELCHANGE		"archive_rel_change"
+#define PARAM_COL_ARCHIVEABSCHANGE		"archive_abs_change"
+#define PARAM_COL_ARCHIVEPERIOD			"archive_period"
+
+
 
 class HdbPPMySQL : public AbstractDB
 {
@@ -129,6 +144,7 @@ public:
 	int find_attr_id(string facility, string attr_name, int &ID);
 	int find_attr_id_type(string facility, string attr_name, int &ID, string attr_type);
 	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
+	virtual int insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
 	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	virtual int remove_Attr(string name);
 	virtual int start_Attr(string name);
