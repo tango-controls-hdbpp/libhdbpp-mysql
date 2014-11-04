@@ -712,19 +712,19 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 				" (" << PARAM_COL_ID << "," << PARAM_COL_INS_TIME << "," << PARAM_COL_EV_TIME << "," <<
 				PARAM_COL_LABEL << "," << PARAM_COL_UNIT << "," << PARAM_COL_STANDARDUNIT << "," <<
 				PARAM_COL_DISPLAYUNIT << "," << PARAM_COL_FORMAT << "," << PARAM_COL_ARCHIVERELCHANGE << "," <<
-				PARAM_COL_ARCHIVEABSCHANGE << "," << PARAM_COL_ARCHIVEPERIOD << ")";
+				PARAM_COL_ARCHIVEABSCHANGE << "," << PARAM_COL_ARCHIVEPERIOD << "," << PARAM_COL_DESCRIPTION << ")";
 
 		query_str << " VALUES (?,NOW(6),FROM_UNIXTIME(?)," <<
 				"?,?,?," <<
 				"?,?,?," <<
-				"?,?)" ;
+				"?,?,?)" ;
 
 		MYSQL_STMT	*pstmt;
-		MYSQL_BIND	plog_bind[10];
+		MYSQL_BIND	plog_bind[11];
 		double		double_data;
 		int			int_data;
-		string		param_data[8];
-		unsigned long param_data_len[8];
+		string		param_data[9];
+		unsigned long param_data_len[9];
 		pstmt = mysql_stmt_init(dbp);
 		if (!pstmt)
 		{
@@ -755,6 +755,8 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 		param_data_len[6] = param_data[6].length();
 		param_data[7] = data->attr_conf->events.arch_event.archive_period;
 		param_data_len[7] = param_data[7].length();
+		param_data[8] = data->attr_conf->description;
+		param_data_len[8] = param_data[8].length();
 
 		memset(plog_bind, 0, sizeof(plog_bind));
 
@@ -807,6 +809,11 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 		plog_bind[9].buffer= (void *)param_data[7].c_str();	//TODO: escape
 		plog_bind[9].is_null= 0;
 		plog_bind[9].length= &param_data_len[7];
+
+		plog_bind[10].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[10].buffer= (void *)param_data[8].c_str();	//TODO: escape
+		plog_bind[10].is_null= 0;
+		plog_bind[10].length= &param_data_len[8];
 
 		if (mysql_stmt_bind_param(pstmt, plog_bind))
 		{
