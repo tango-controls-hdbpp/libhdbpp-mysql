@@ -48,18 +48,29 @@
 #define EVENT_REMOVE				"remove"
 #define EVENT_START					"start"
 #define EVENT_STOP					"stop"
+#define EVENT_CRASH					"crash"
 
 //######## att_conf ########
 #define CONF_TABLE_NAME				"att_conf"
 #define CONF_COL_ID					"att_conf_id"
 #define CONF_COL_NAME				"att_name"
-#define CONF_COL_TYPE				"data_type"
+#define CONF_COL_TYPE_ID			"att_conf_data_type_id"
+
+//######## att_conf_data_type ########
+#define CONF_TYPE_TABLE_NAME		"att_conf_data_type"
+#define CONF_TYPE_COL_TYPE_ID		"att_conf_data_type_id"
+#define CONF_TYPE_COL_TYPE			"data_type"
 
 //######## att_history ########
 #define HISTORY_TABLE_NAME			"att_history"
 #define HISTORY_COL_ID				"att_conf_id"
-#define HISTORY_COL_EVENT			"event"
+#define HISTORY_COL_EVENT_ID		"att_history_event_id"
 #define HISTORY_COL_TIME			"time"
+
+//######## att_history_event ########
+#define HISTORY_EVENT_TABLE_NAME	"att_history_event"
+#define HISTORY_EVENT_COL_EVENT_ID	"att_history_event_id"
+#define HISTORY_EVENT_COL_EVENT		"event"
 
 //######## att_scalar_... ########
 #define SC_DOUBLE_RO_TABLE_NAME		"att_scalar_double_ro"
@@ -73,7 +84,7 @@
 
 #define SC_COL_ID					"att_conf_id"
 #define SC_COL_INS_TIME				"insert_time"
-#define SC_COL_RCV_TIME				"event_time"
+#define SC_COL_RCV_TIME				"recv_time"
 #define SC_COL_EV_TIME				"data_time"
 #define SC_COL_VALUE_R				"value_r"
 #define SC_COL_VALUE_W				"value_w"
@@ -88,7 +99,7 @@
 
 #define ARR_COL_ID					"att_conf_id"
 #define ARR_COL_INS_TIME			"insert_time"
-#define ARR_COL_RCV_TIME			"event_time"
+#define ARR_COL_RCV_TIME			"recv_time"
 #define ARR_COL_EV_TIME				"data_time"
 #define ARR_COL_VALUE_R				"value_r"
 #define ARR_COL_VALUE_W				"value_w"
@@ -103,7 +114,7 @@
 #define PARAM_TABLE_NAME				"att_parameter"
 #define PARAM_COL_ID					"att_conf_id"
 #define PARAM_COL_INS_TIME				"insert_time"
-#define PARAM_COL_EV_TIME				"event_time"
+#define PARAM_COL_EV_TIME				"recv_time"
 #define PARAM_COL_LABEL					"label"
 #define PARAM_COL_UNIT					"unit"
 #define PARAM_COL_STANDARDUNIT			"standard_unit"
@@ -144,6 +155,7 @@ public:
 	//void connect_db(string host, string user, string password, string dbname);
 	int find_attr_id(string facility, string attr_name, int &ID);
 	int find_attr_id_type(string facility, string attr_name, int &ID, string attr_type);
+	int find_last_event(int ID, string &event);
 	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
 	virtual int insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
 	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);

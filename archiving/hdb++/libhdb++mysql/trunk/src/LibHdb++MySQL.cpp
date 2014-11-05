@@ -156,7 +156,10 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 	string db_type;
 #ifndef _MULTI_TANGO_HOST
 	query_str << 
-		"SELECT " << CONF_COL_ID << "," << CONF_COL_TYPE << " FROM " << m_dbname << "." << CONF_TABLE_NAME <<
+		"SELECT " << CONF_TABLE_NAME << "." << CONF_COL_ID << "," << CONF_TYPE_TABLE_NAME << "." << CONF_TYPE_COL_TYPE <<
+			" FROM " << m_dbname << "." << CONF_TABLE_NAME <<
+			" JOIN " << m_dbname << "." << CONF_TYPE_TABLE_NAME <<
+			" ON " << m_dbname << "." << CONF_TABLE_NAME << "." << CONF_COL_TYPE_ID << "=" << m_dbname << "." << CONF_TYPE_TABLE_NAME << "." << CONF_TYPE_COL_TYPE_ID <<
 			" WHERE " << CONF_COL_NAME << " = 'tango://" << facility<<"/"<<attr << "'";
 #else
 	vector<string> facilities;
@@ -230,6 +233,68 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 			cout << __func__<< ": FOUND ID="<<ID<<" with SAME type: attr_type="<<attr_type<<"-db_type="<<db_type << endl;
 			return 0;
 		}
+	}
+	return 0;
+}
+
+int HdbPPMySQL::find_last_event(int ID, string &event)
+{
+	ostringstream query_str;
+	//string facility_no_domain = remove_domain(facility);
+	//string facility_with_domain = add_domain(facility);
+
+	query_str <<
+		"SELECT " << HISTORY_EVENT_COL_EVENT <<
+			" FROM " << m_dbname << "." << HISTORY_TABLE_NAME <<
+			" JOIN " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME <<
+			" ON " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << "." << HISTORY_EVENT_COL_EVENT_ID << "=" << m_dbname << "." << HISTORY_TABLE_NAME << "." << HISTORY_COL_EVENT_ID <<
+			" WHERE " << HISTORY_COL_ID << " = " << ID <<
+			" ORDER BY " << HISTORY_COL_TIME << " DESC LIMIT 1";
+
+
+	if(mysql_query(dbp, query_str.str().c_str()))
+	{
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+		return -1;
+	}
+	else
+	{
+		MYSQL_RES *res;
+		MYSQL_ROW row;
+		/*res = mysql_use_result(dbp);
+		my_ulonglong num_found = mysql_num_rows(res);
+		if(num_found == 0)*/
+		res = mysql_store_result(dbp);
+		if(res == NULL)
+		{
+			cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
+			return -1;
+		}
+#ifdef _LIB_DEBUG
+		else
+		{
+			my_ulonglong num_found = mysql_num_rows(res);
+			if(num_found > 0)
+			{
+				cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
+			}
+			else
+			{
+				cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
+				mysql_free_result(res);
+				return -1;
+			}
+		}
+#endif
+		bool found = false;
+		while ((row = mysql_fetch_row(res)))
+		{
+			found = true;
+			event = row[0];
+		}
+		mysql_free_result(res);
+		if(!found)
+			return -1;
 	}
 	return 0;
 }
@@ -887,14 +952,25 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	if(ret == 0)
 	{
 		cout<< __func__ << ": ALREADY CONFIGURED with same configuration: "<<facility<<"/"<<attr_name<<" with ID="<<id << endl;
+		insert_event_str <<
+			"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+				" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+				" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_ADD << "'";
+
+		if(mysql_query(dbp, insert_event_str.str().c_str()))
+		{
+			cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << endl;
+			return -1;
+		}
 		return 0;
 	}
 
 	//add domain name to fqdn
 	name = string("tango://")+facility+string("/")+attr_name;
 	insert_str <<
-		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE<<")" <<
-			" VALUES ('" << name << "','" << data_type << "')";
+		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<")" <<
+			" SELECT '" << name << "'," << CONF_TYPE_COL_TYPE_ID <<
+			" FROM " << m_dbname << "." << CONF_TYPE_TABLE_NAME << " WHERE " << CONF_TYPE_COL_TYPE << " = '" << data_type << "'";
 
 	if(mysql_query(dbp, insert_str.str().c_str()))
 	{
@@ -905,8 +981,9 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	//int last_id = mysql_insert_id(dbp);
 
 	insert_event_str <<
-		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
-			" VALUES (LAST_INSERT_ID(),'" << EVENT_ADD << "',NOW(6))";
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+			" SELECT LAST_INSERT_ID()," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+			" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_ADD << "'";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
 	{
@@ -919,7 +996,32 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 
 int HdbPPMySQL::remove_Attr(string name)
 {
-	//TODO: implement
+	ostringstream insert_event_str;
+	string facility = get_only_tango_host(name);
+#ifndef _MULTI_TANGO_HOST
+	facility = add_domain(facility);
+#endif
+	string attr_name = get_only_attr_name(name);
+
+	int id=0;
+	int ret = find_attr_id(facility, attr_name, id);
+	if(ret < 0)
+	{
+		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" NOT FOUND" << endl;
+		return -1;
+	}
+
+	insert_event_str <<
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+			" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+			" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_REMOVE << "'";
+
+	if(mysql_query(dbp, insert_event_str.str().c_str()))
+	{
+		cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << endl;
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -939,10 +1041,26 @@ int HdbPPMySQL::start_Attr(string name)
 		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" NOT FOUND" << endl;
 		return -1;
 	}
+	string event;
+	ret = find_last_event(id, event);
+	if(ret == 0 && event == EVENT_START)
+	{
+		ostringstream insert_event_crash_str;
+		insert_event_crash_str <<
+			"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+				" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+				" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_CRASH << "'";
+
+		if(mysql_query(dbp, insert_event_crash_str.str().c_str()))
+		{
+			cout<< __func__ << ": ERROR in query=" << insert_event_crash_str.str() << endl;
+		}
+	}
 
 	insert_event_str <<
-		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
-			" VALUES ("<<id<<",'" << EVENT_START << "',NOW(6))";
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+			" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+			" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_START << "'";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
 	{
@@ -971,8 +1089,9 @@ int HdbPPMySQL::stop_Attr(string name)
 	}
 
 	insert_event_str <<
-		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT<<","<<HISTORY_COL_TIME<<")" <<
-			" VALUES ("<<id<<",'" << EVENT_STOP << "',NOW(6))";
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+			" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+			" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_STOP << "'";
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
 	{
