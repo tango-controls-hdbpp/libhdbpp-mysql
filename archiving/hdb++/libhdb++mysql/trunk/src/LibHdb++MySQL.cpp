@@ -706,7 +706,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 		default:
 		{
 			TangoSys_MemStream	os;
-			os << "Attribute " << data->attr_name<< " type (" << (int)(data->attr_value->get_type()) << ") not supported";
+			os << "Attribute " << data->attr_name<< " type (" << data_type << "-(" << (int)(data->attr_value->get_type()) << ")) not supported";
 			cout << __func__<<": " << os.str() << endl;
 			return -1;
 		}
@@ -836,47 +836,47 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 		plog_bind[1].length= 0;
 
 		plog_bind[2].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[2].buffer= (void *)param_data[0].c_str();	//TODO: escape
+		plog_bind[2].buffer= (void *)param_data[0].c_str();
 		plog_bind[2].is_null= 0;
 		plog_bind[2].length= &param_data_len[0];
 
 		plog_bind[3].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[3].buffer= (void *)param_data[1].c_str();	//TODO: escape
+		plog_bind[3].buffer= (void *)param_data[1].c_str();
 		plog_bind[3].is_null= 0;
 		plog_bind[3].length= &param_data_len[1];
 
 		plog_bind[4].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[4].buffer= (void *)param_data[2].c_str();	//TODO: escape
+		plog_bind[4].buffer= (void *)param_data[2].c_str();
 		plog_bind[4].is_null= 0;
 		plog_bind[4].length= &param_data_len[2];
 
 		plog_bind[5].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[5].buffer= (void *)param_data[3].c_str();	//TODO: escape
+		plog_bind[5].buffer= (void *)param_data[3].c_str();
 		plog_bind[5].is_null= 0;
 		plog_bind[5].length= &param_data_len[3];
 
 		plog_bind[6].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[6].buffer= (void *)param_data[4].c_str();	//TODO: escape
+		plog_bind[6].buffer= (void *)param_data[4].c_str();
 		plog_bind[6].is_null= 0;
 		plog_bind[6].length= &param_data_len[4];
 
 		plog_bind[7].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[7].buffer= (void *)param_data[5].c_str();	//TODO: escape
+		plog_bind[7].buffer= (void *)param_data[5].c_str();
 		plog_bind[7].is_null= 0;
 		plog_bind[7].length= &param_data_len[5];
 
 		plog_bind[8].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[8].buffer= (void *)param_data[6].c_str();	//TODO: escape
+		plog_bind[8].buffer= (void *)param_data[6].c_str();
 		plog_bind[8].is_null= 0;
 		plog_bind[8].length= &param_data_len[6];
 
 		plog_bind[9].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[9].buffer= (void *)param_data[7].c_str();	//TODO: escape
+		plog_bind[9].buffer= (void *)param_data[7].c_str();
 		plog_bind[9].is_null= 0;
 		plog_bind[9].length= &param_data_len[7];
 
 		plog_bind[10].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[10].buffer= (void *)param_data[8].c_str();	//TODO: escape
+		plog_bind[10].buffer= (void *)param_data[8].c_str();
 		plog_bind[10].is_null= 0;
 		plog_bind[10].length= &param_data_len[8];
 
@@ -967,9 +967,11 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 
 	//add domain name to fqdn
 	name = string("tango://")+facility+string("/")+attr_name;
+	char name_escaped[2 * name.length() + 1];
+	mysql_escape_string(name_escaped, name.c_str(), name.length());
 	insert_str <<
 		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<")" <<
-			" SELECT '" << name << "'," << CONF_TYPE_COL_TYPE_ID <<
+			" SELECT '" << name_escaped << "'," << CONF_TYPE_COL_TYPE_ID <<
 			" FROM " << m_dbname << "." << CONF_TYPE_TABLE_NAME << " WHERE " << CONF_TYPE_COL_TYPE << " = '" << data_type << "'";
 
 	if(mysql_query(dbp, insert_str.str().c_str()))
@@ -1246,7 +1248,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	plog_bind[3].length= 0;
 
 	plog_bind[4].buffer_type= MYSQL_TYPE_VARCHAR;
-	plog_bind[4].buffer= (void *)error_data.c_str();	//TODO: escape
+	plog_bind[4].buffer= (void *)error_data.c_str();
 	plog_bind[4].is_null= &error_data_is_null;
 	error_data_len=error_data.length();
 	plog_bind[4].length= &error_data_len;
@@ -1462,7 +1464,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		plog_bind[param_count_single*idx+3].length= 0;
 
 		plog_bind[param_count_single*idx+4].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[param_count_single*idx+4].buffer= (void *)error_data[idx].c_str();	//TODO: escape
+		plog_bind[param_count_single*idx+4].buffer= (void *)error_data[idx].c_str();
 		plog_bind[param_count_single*idx+4].is_null= &error_data_is_null[idx];
 		error_data_len[idx]=error_data[idx].length();
 		plog_bind[param_count_single*idx+4].length= &error_data_len[idx];
@@ -1536,7 +1538,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 
 
 		plog_bind[param_count_single*idx+4].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[param_count_single*idx+4].buffer= (void *)error_data[idx].c_str();	//TODO: escape
+		plog_bind[param_count_single*idx+4].buffer= (void *)error_data[idx].c_str();
 		plog_bind[param_count_single*idx+4].is_null= &error_data_is_null[idx];
 		error_data_len[idx]=error_data[idx].length();
 		plog_bind[param_count_single*idx+4].length= &error_data_len[idx];
@@ -1735,19 +1737,19 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 	plog_bind[3].length= 0;
 
 	plog_bind[4].buffer_type= MYSQL_TYPE_VARCHAR;
-	plog_bind[4].buffer= (void *)error_data.c_str();	//TODO: escape
+	plog_bind[4].buffer= (void *)error_data.c_str();
 	plog_bind[4].is_null= &error_data_is_null;
 	error_data_len=error_data.length();
 	plog_bind[4].length= &error_data_len;
 
 	plog_bind[5].buffer_type= MYSQL_TYPE_VARCHAR;
-	plog_bind[5].buffer= (void *)value_data[0].c_str();	//TODO: escape
+	plog_bind[5].buffer= (void *)value_data[0].c_str();
 	plog_bind[5].is_null= &is_null[0];
 	value_data_len[0]=value_data[0].length();
 	plog_bind[5].length= &value_data_len[0];
 
 	plog_bind[6].buffer_type= MYSQL_TYPE_VARCHAR;
-	plog_bind[6].buffer= (void *)value_data[1].c_str();	//TODO: escape
+	plog_bind[6].buffer= (void *)value_data[1].c_str();
 	plog_bind[6].is_null= &is_null[1];
 	value_data_len[1]=value_data[1].length();
 	plog_bind[6].length= &value_data_len[1];
@@ -1928,7 +1930,7 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 		plog_bind[param_count_single*idx+3].length= 0;
 
 		plog_bind[param_count_single*idx+4].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[param_count_single*idx+4].buffer= (void *)error_data[idx].c_str();	//TODO: escape
+		plog_bind[param_count_single*idx+4].buffer= (void *)error_data[idx].c_str();
 		plog_bind[param_count_single*idx+4].is_null= &error_data_is_null[idx];
 		error_data_len[idx]=error_data[idx].length();
 		plog_bind[param_count_single*idx+4].length= &error_data_len[idx];
