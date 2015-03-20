@@ -369,7 +369,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 		}
 		else
 		{
-			attr_r_dim.dim_x = 1;//max_dim_x;//TODO: OK?
+			attr_r_dim.dim_x = 0;//max_dim_x;//TODO: OK?
 			attr_w_dim.dim_x = 0;//max_dim_x;//TODO: OK?
 			attr_r_dim.dim_y = 0;//max_dim_y;//TODO: OK?
 			attr_w_dim.dim_y = 0;//max_dim_y;//TODO: OK?
