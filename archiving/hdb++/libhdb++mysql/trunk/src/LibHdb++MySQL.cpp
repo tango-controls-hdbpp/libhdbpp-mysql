@@ -1104,6 +1104,37 @@ int HdbPPMySQL::stop_Attr(string name)
 	return 0;
 }
 
+int HdbPPMySQL::pause_Attr(string name)
+{
+	ostringstream insert_event_str;
+	string facility = get_only_tango_host(name);
+#ifndef _MULTI_TANGO_HOST
+	facility = add_domain(facility);
+#endif
+	string attr_name = get_only_attr_name(name);
+
+	int id=0;
+	int ret = find_attr_id(facility, attr_name, id);
+	if(ret < 0)
+	{
+		cout<< __func__ << ": ERROR "<<facility<<"/"<<attr_name<<" NOT FOUND" << endl;
+		return -1;
+	}
+
+	insert_event_str <<
+		"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
+			" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
+			" FROM " << m_dbname << "." << HISTORY_EVENT_TABLE_NAME << " WHERE " << HISTORY_EVENT_COL_EVENT << " = '" << EVENT_PAUSE << "'";
+
+	if(mysql_query(dbp, insert_event_str.str().c_str()))
+	{
+		cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << endl;
+		return -1;
+	}
+
+	return 0;
+}
+
 //=============================================================================
 //=============================================================================
 template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull)
