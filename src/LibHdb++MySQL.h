@@ -49,6 +49,7 @@
 #define EVENT_START					"start"
 #define EVENT_STOP					"stop"
 #define EVENT_CRASH					"crash"
+#define EVENT_PAUSE					"pause"
 
 //######## att_conf ########
 #define CONF_TABLE_NAME				"att_conf"
@@ -162,6 +163,7 @@ public:
 	virtual int remove_Attr(string name);
 	virtual int start_Attr(string name);
 	virtual int stop_Attr(string name);
+	virtual int pause_Attr(string name);
 
 private:
 	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
