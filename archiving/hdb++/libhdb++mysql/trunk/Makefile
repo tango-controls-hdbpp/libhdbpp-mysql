@@ -1,14 +1,14 @@
 
 include ../../Make-hdb++.in
 
-CXXFLAGS += -Wall -DRELEASE='"$HeadURL$ "' $(SQLIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC)
+CXXFLAGS += -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC)
 CXX = g++
 
 
 ##############################################
 # support for shared libray versioning
 #
-LFLAGS_SONAME = $(SQLIMPL_LIB) -Wl,-soname,
+LFLAGS_SONAME = $(DBIMPL_LIB) -Wl,-soname,
 SHLDFLAGS = -shared
 BASELIBNAME       =  libhdb++mysql
 SHLIB_SUFFIX = so
