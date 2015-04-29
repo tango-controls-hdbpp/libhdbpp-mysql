@@ -36,11 +36,21 @@
 
 #define TYPE_SCALAR					"scalar"
 #define TYPE_ARRAY					"array"
-#define TYPE_DOUBLE					"double"
-#define TYPE_I64					"int64"
-#define TYPE_I8						"int8"
-#define TYPE_STRING					"string"
-#define TYPE_ENCODED				"encoded"
+
+#define TYPE_DEV_BOOLEAN			"devboolean"
+#define TYPE_DEV_UCHAR				"devuchar"
+#define TYPE_DEV_SHORT				"devshort"
+#define TYPE_DEV_USHORT				"devushort"
+#define TYPE_DEV_LONG				"devlong"
+#define TYPE_DEV_ULONG				"devulong"
+#define TYPE_DEV_LONG64				"devlong64"
+#define TYPE_DEV_ULONG64			"devulong64"
+#define TYPE_DEV_FLOAT				"devfloat"
+#define TYPE_DEV_DOUBLE				"devdouble"
+#define TYPE_DEV_STRING				"devstring"
+#define TYPE_DEV_STATE				"devstate"
+#define TYPE_DEV_ENCODED			"devencoded"
+
 #define TYPE_RO						"ro"
 #define TYPE_RW						"rw"
 
@@ -74,15 +84,6 @@
 #define HISTORY_EVENT_COL_EVENT		"event"
 
 //######## att_scalar_... ########
-#define SC_DOUBLE_RO_TABLE_NAME		"att_scalar_double_ro"
-#define SC_I64_RO_TABLE_NAME		"att_scalar_int64_ro"
-#define SC_I8_RO_TABLE_NAME			"att_scalar_int8_ro"
-#define SC_STRING_RO_TABLE_NAME		"att_scalar_string_ro"
-#define SC_DOUBLE_RW_TABLE_NAME		"att_scalar_double_rw"
-#define SC_I64_RW_TABLE_NAME		"att_scalar_int64_rw"
-#define SC_I8_RW_TABLE_NAME			"att_scalar_int8_rw"
-#define SC_STRING_RW_TABLE_NAME		"att_scalar_string_rw"
-
 #define SC_COL_ID					"att_conf_id"
 #define SC_COL_INS_TIME				"insert_time"
 #define SC_COL_RCV_TIME				"recv_time"
@@ -94,10 +95,7 @@
 
 
 
-//######## att_array_double_ro ########
-#define ARR_DOUBLE_RO_TABLE_NAME	"att_array_double_ro"
-#define ARR_DOUBLE_RW_TABLE_NAME	"att_array_double_rw"
-
+//######## att_array_... ########
 #define ARR_COL_ID					"att_conf_id"
 #define ARR_COL_INS_TIME			"insert_time"
 #define ARR_COL_RCV_TIME			"recv_time"
@@ -105,8 +103,10 @@
 #define ARR_COL_VALUE_R				"value_r"
 #define ARR_COL_VALUE_W				"value_w"
 #define ARR_COL_IDX					"idx"
-#define ARR_COL_DIMX				"dim_x"
-#define ARR_COL_DIMY				"dim_y"
+#define ARR_COL_DIMX_R				"dim_x_r"
+#define ARR_COL_DIMY_R				"dim_y_r"
+#define ARR_COL_DIMX_W				"dim_x_w"
+#define ARR_COL_DIMY_W				"dim_y_w"
 #define ARR_COL_QUALITY				"quality"
 #define ARR_COL_ERROR_DESC			"error_desc"
 
@@ -163,10 +163,12 @@ public:
 	virtual int event_Attr(string name, unsigned char event);
 
 private:
-	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
-	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
+	template <typename Type> int extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull);
+	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool is_unsigned, bool isNull=false);
+	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull=false);
 	int store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull=false);
 	int store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
+	template <typename Type> bool is_nan_or_inf(Type val);
 };
 
 class HdbPPMySQLFactory : public DBFactory
