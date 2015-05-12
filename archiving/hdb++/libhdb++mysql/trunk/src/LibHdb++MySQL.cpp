@@ -445,14 +445,30 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 		}
 		case Tango::DEV_STATE:
 		{
-#if 0
-			vector<int8_t>	vi8val_r;
-			vector<int8_t>	vi8val_w;
-			Tango::DevState	st;
-			*data->attr_value >> st;
-			vi8val_r.push_back((int8_t)st);
-			ret = store_scalar<int8_t>(attr_name, vi8val_r, vi8val_w, quality, error_desc, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/);
-#else
+#if 1
+			vector<Tango::DevState>	vstval_r;
+			vector<Tango::DevState>	vstval_w;
+			if(write_type == Tango::READ && data_format == Tango::SCALAR)
+			{
+				// We cannot use the extract_read() method for the "State" attribute
+				Tango::DevState	st;
+				if(!isNull)
+				{
+					*data->attr_value >> st;
+				}
+				else
+				{
+					st = (Tango::DevState)0; //fake value
+				}
+				vstval_r.push_back(st);
+				ret = store_scalar<Tango::DevState>(attr_name, vstval_r, vstval_w, quality, error_desc, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+				return ret;
+			}
+			else
+			{
+				ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+			}
+#else	//TODO: extract_read fails on state attribute
 			ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 #endif
 			break;
