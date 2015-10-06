@@ -799,9 +799,9 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 
 	insert_str <<
 		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<","<<
-			CONF_COL_FACILITY<<","<<CONF_COL_DOMAIN<<","<<CONF_COL_FAMILY<<","CONF_COL_MEMBER<<","<<CONF_COL_LAST_NAME<<")" <<
+			CONF_COL_FACILITY<<","<<CONF_COL_DOMAIN<<","<<CONF_COL_FAMILY<<","<<CONF_COL_MEMBER<<","<<CONF_COL_LAST_NAME<<")"<<
 			" SELECT '" << name_escaped << "'," << CONF_TYPE_COL_TYPE_ID <<
-			",'"<<complete_facility_escaped<<"','"<<domain_escaped<<"','"<<family_escaped<<"','"<<member_escaped <<"','"<<last_name_escaped<<"'"<<
+			",'"<<complete_facility_escaped<<"','"<<domain_escaped<<"','"<<family_escaped<<"','"<<member_escaped<<"','"<<last_name_escaped<<"'"<<
 			" FROM " << m_dbname << "." << CONF_TYPE_TABLE_NAME << " WHERE " << CONF_TYPE_COL_TYPE << " = '" << data_type << "'";
 
 	if(mysql_query(dbp, insert_str.str().c_str()))
