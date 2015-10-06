@@ -104,7 +104,7 @@ int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err=" << mysql_error(dbp) << endl;
 		return -1;
 	}
 	else
@@ -180,7 +180,7 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 	
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << " err="<<mysql_error(dbp)<< endl;
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err="<<mysql_error(dbp)<< endl;
 		return -1;
 	}
 	else
@@ -254,7 +254,7 @@ int HdbPPMySQL::find_last_event(int ID, string &event)
 
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err=" << mysql_error(dbp) << endl;
 		return -1;
 	}
 	else
@@ -594,7 +594,7 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 		}
 		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
 		{
-			cout << __func__<< ": mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << endl;
+			cout << __func__<< ": mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt) << endl;
 			return -1;
 		}
 
@@ -678,13 +678,13 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 
 		if (mysql_stmt_bind_param(pstmt, plog_bind))
 		{
-			cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;
+			cout << __func__<< ": mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 			return -1;
 		}
 
 		if (mysql_stmt_execute(pstmt))
 		{
-			cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+			cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt) << endl;
 			if (mysql_stmt_close(pstmt))
 				cout << __func__<< ": failed while closing the statement" << endl;
 			return -1;
@@ -700,7 +700,7 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 				DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 		if (mysql_stmt_close(pstmt))
 		{
-			cout << __func__<< ": failed while closing the statement" << endl;
+			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 			return -1;
 		}
 	}
@@ -755,7 +755,7 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 
 		if(mysql_query(dbp, insert_event_str.str().c_str()))
 		{
-			cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << endl;
+			cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << ", err=" << mysql_error(dbp) << endl;
 			return -1;
 		}
 		return 0;
@@ -765,14 +765,48 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	name = string("tango://")+facility+string("/")+attr_name;
 	char name_escaped[2 * name.length() + 1];
 	mysql_escape_string(name_escaped, name.c_str(), name.length());
+
+	vector<string> exploded_name;
+	string_explode(attr_name,"/",&exploded_name);
+
+	string complete_facility=string("tango://")+facility;
+	char complete_facility_escaped[2 * complete_facility.length() + 1];
+	mysql_escape_string(complete_facility_escaped, complete_facility.c_str(), complete_facility.length());
+
+	string domain="";
+	string family="";
+	string member="";
+	string last_name="";
+	if(exploded_name.size() == 4)
+	{
+		domain=exploded_name[0];
+		family=exploded_name[1];
+		member=exploded_name[2];
+		last_name=exploded_name[3];
+	}
+	else
+	{
+		cout<< __func__ << ": FAILED to explode " << attr_name << " into 4 fields, result is " << exploded_name.size() << endl;
+	}
+	char domain_escaped[2 * domain.length() + 1];
+	mysql_escape_string(domain_escaped, domain.c_str(), domain.length());
+	char family_escaped[2 * family.length() + 1];
+	mysql_escape_string(family_escaped, family.c_str(), family.length());
+	char member_escaped[2 * member.length() + 1];
+	mysql_escape_string(member_escaped, member.c_str(), member.length());
+	char last_name_escaped[2 * last_name.length() + 1];
+	mysql_escape_string(last_name_escaped, last_name.c_str(), last_name.length());
+
 	insert_str <<
-		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<")" <<
+		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<","<<
+			CONF_COL_FACILITY<<","<<CONF_COL_DOMAIN<<","<<CONF_COL_FAMILY<<","CONF_COL_MEMBER<<","<<CONF_COL_LAST_NAME<<")" <<
 			" SELECT '" << name_escaped << "'," << CONF_TYPE_COL_TYPE_ID <<
+			",'"<<complete_facility_escaped<<"','"<<domain_escaped<<"','"<<family_escaped<<"','"<<member_escaped <<"','"<<last_name_escaped<<"'"<<
 			" FROM " << m_dbname << "." << CONF_TYPE_TABLE_NAME << " WHERE " << CONF_TYPE_COL_TYPE << " = '" << data_type << "'";
 
 	if(mysql_query(dbp, insert_str.str().c_str()))
 	{
-		cout<< __func__ << ": ERROR in query=" << insert_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << insert_str.str() << ", err=" << mysql_error(dbp) << endl;
 		return -1;
 	}
 
@@ -785,7 +819,7 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
 	{
-		cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << ", err=" << mysql_error(dbp) << endl;
 		return -1;
 	}
 
@@ -861,7 +895,7 @@ int HdbPPMySQL::event_Attr(string name, unsigned char event)
 
 	if(mysql_query(dbp, insert_event_str.str().c_str()))
 	{
-		cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << insert_event_str.str() << ", err=" << mysql_error(dbp) << endl;
 		return -1;
 	}
 
@@ -938,7 +972,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	}
 	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
 	{
-		cout << __func__<< ": mysql_stmt_prepare(), INSERT failed" << endl;
+		cout << __func__<< ": mysql_stmt_prepare(), INSERT failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
@@ -1032,15 +1066,15 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 
 	if (mysql_stmt_bind_param(pstmt, plog_bind))
 	{
-		cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;
+		cout << __func__<< ": mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
 	if (mysql_stmt_execute(pstmt))
 	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt) << endl;
 		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << endl;
+			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 #ifdef _LIB_DEBUG
@@ -1054,7 +1088,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 	if (mysql_stmt_close(pstmt))
 	{
-		cout << __func__<< ": failed while closing the statement" << endl;
+		cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
@@ -1151,7 +1185,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	}
 	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
 	{
-		cout << __func__<< ": mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"' err="<<mysql_stmt_error(pstmt) << endl;
+		cout << __func__<< ": mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"', err="<<mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 	memset(plog_bind, 0, sizeof(MYSQL_BIND)*param_count);
@@ -1373,7 +1407,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 
 	if (mysql_stmt_bind_param(pstmt, plog_bind))
 	{
-		cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;
+		cout << __func__<< ": mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
@@ -1381,7 +1415,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	{
 		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
 		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << endl;
+			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		return -1;
 	}
@@ -1396,7 +1430,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 	if (mysql_stmt_close(pstmt))
 	{
-		cout << __func__<< ": failed while closing the statement" << endl;
+		cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		return -1;
 	}
@@ -1474,7 +1508,7 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 	}
 	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
 	{
-		cout << __func__<< ": mysql_stmt_prepare(), INSERT failed" << endl;
+		cout << __func__<< ": mysql_stmt_prepare(), INSERT failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
@@ -1555,13 +1589,13 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 
 	if (mysql_stmt_bind_param(pstmt, plog_bind))
 	{
-		cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;
+		cout << __func__<< ": mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
 	if (mysql_stmt_execute(pstmt))
 	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt) << endl;
 		if (mysql_stmt_close(pstmt))
 			cout << __func__<< ": failed while closing the statement" << endl;
 		return -1;
@@ -1577,7 +1611,7 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 	if (mysql_stmt_close(pstmt))
 	{
-		cout << __func__<< ": failed while closing the statement" << endl;
+		cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
@@ -1612,7 +1646,7 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 	}
 	if(it == attr_ID_map.end())
 	{
-		cout << __func__<< ": ID not found fro attr="<<attr << endl;
+		cout << __func__<< ": ID not found from attr="<<attr << endl;
 		return -1;
 	}
 	int ID=it->second;
@@ -1782,15 +1816,15 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 
 	if (mysql_stmt_bind_param(pstmt, plog_bind))
 	{
-		cout << __func__<< ": mysql_stmt_bind_param() failed" << endl;
+		cout << __func__<< ": mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		return -1;
 	}
 
 	if (mysql_stmt_execute(pstmt))
 	{
-		cout<< __func__ << ": ERROR in query=" << query_str.str() << endl;
+		cout<< __func__ << ": ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt) << endl;
 		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << endl;
+			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		return -1;
 	}
@@ -1805,7 +1839,7 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 	if (mysql_stmt_close(pstmt))
 	{
-		cout << __func__<< ": failed while closing the statement" << endl;
+		cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		return -1;
 	}
@@ -1997,7 +2031,7 @@ string HdbPPMySQL::add_domain(string str)
 		return str;
 	}
 }
-#else
+#endif
 void HdbPPMySQL::string_explode(string str, string separator, vector<string>* results)
 {
 	string::size_type found;
@@ -2014,7 +2048,7 @@ void HdbPPMySQL::string_explode(string str, string separator, vector<string>* re
 		results->push_back(str);
 	}
 }
-#endif
+
 
 //=============================================================================
 //=============================================================================

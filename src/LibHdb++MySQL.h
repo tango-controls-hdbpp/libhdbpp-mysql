@@ -66,6 +66,11 @@
 #define CONF_COL_ID					"att_conf_id"
 #define CONF_COL_NAME				"att_name"
 #define CONF_COL_TYPE_ID			"att_conf_data_type_id"
+#define CONF_COL_FACILITY			"facility"
+#define CONF_COL_DOMAIN				"domain"
+#define CONF_COL_FAMILY				"family"
+#define CONF_COL_MEMBER				"member"
+#define CONF_COL_LAST_NAME			"name"
 
 //######## att_conf_data_type ########
 #define CONF_TYPE_TABLE_NAME		"att_conf_data_type"
@@ -141,9 +146,9 @@ private:
 #ifndef _MULTI_TANGO_HOST
 	string remove_domain(string facility);
 	string add_domain(string facility);
-#else
-	void string_explode(string str, string separator, vector<string>* results);
 #endif
+	void string_explode(string str, string separator, vector<string>* results);
+
 	string get_data_type(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	string get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 
