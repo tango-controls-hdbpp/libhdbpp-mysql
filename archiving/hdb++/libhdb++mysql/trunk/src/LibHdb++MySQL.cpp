@@ -363,6 +363,10 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 			attr_r_dim.dim_y = 0;//max_dim_y;//TODO: OK?
 			attr_w_dim.dim_y = 0;//max_dim_y;//TODO: OK?
 		}
+		if(ev_time < 1)
+			ev_time=1;
+		if(rcv_time < 1)
+			rcv_time=1;
 
 		string table_name = get_table_name(data_type, data_format, write_type);
 
