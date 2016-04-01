@@ -620,7 +620,14 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 		param_data_len[6] = param_data[6].length();
 		param_data[7] = data->attr_conf->events.arch_event.archive_period;
 		param_data_len[7] = param_data[7].length();
-		param_data[8] = data->attr_conf->description;
+		if(data->attr_conf->description.length() <= 1024)
+		{
+			param_data[8] = data->attr_conf->description;
+		}
+		else
+		{
+			param_data[8] = data->attr_conf->description.substr(0,1023);
+		}
 		param_data_len[8] = param_data[8].length();
 
 		memset(plog_bind, 0, sizeof(plog_bind));
