@@ -66,6 +66,7 @@
 #define CONF_COL_ID					"att_conf_id"
 #define CONF_COL_NAME				"att_name"
 #define CONF_COL_TYPE_ID			"att_conf_data_type_id"
+#define CONF_COL_TTL				"att_ttl"
 #define CONF_COL_FACILITY			"facility"
 #define CONF_COL_DOMAIN				"domain"
 #define CONF_COL_FAMILY				"family"
@@ -148,6 +149,7 @@ private:
 	string add_domain(string facility);
 #endif
 	void string_explode(string str, string separator, vector<string>* results);
+	void string_vector2map(vector<string> str, string separator, map<string,string>* results);
 
 	string get_data_type(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	string get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
@@ -156,7 +158,7 @@ public:
 
 	~HdbPPMySQL();
 
-	HdbPPMySQL(string host, string user, string password, string dbname, int port);
+	HdbPPMySQL(vector<string> configuration);
 
 	//void connect_db(string host, string user, string password, string dbname);
 	int find_attr_id(string facility, string attr_name, int &ID);
@@ -164,7 +166,7 @@ public:
 	int find_last_event(int ID, string &event);
 	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
 	virtual int insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
-	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
+	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/);
 	virtual int event_Attr(string name, unsigned char event);
 
 private:
@@ -180,7 +182,7 @@ class HdbPPMySQLFactory : public DBFactory
 {
 
 public:
-	virtual AbstractDB* create_db(string host, string user, string password, string dbname, int port);
+	virtual AbstractDB* create_db(vector<string> configuration);
 
 };
 
