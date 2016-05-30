@@ -178,14 +178,14 @@ int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 	return 0;
 }
 
-int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string attr_type)
+int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string attr_type, unsigned int &conf_ttl)
 {
 	ostringstream query_str;
 //	string facility_no_domain = remove_domain(facility);
 	string db_type;
 #ifndef _MULTI_TANGO_HOST
 	query_str << 
-		"SELECT " << CONF_TABLE_NAME << "." << CONF_COL_ID << "," << CONF_TYPE_TABLE_NAME << "." << CONF_TYPE_COL_TYPE <<
+		"SELECT " << CONF_TABLE_NAME << "." << CONF_COL_ID << "," << CONF_TYPE_TABLE_NAME << "." << CONF_TYPE_COL_TYPE << "," << CONF_TABLE_NAME << "." << CONF_COL_TTL <<
 			" FROM " << m_dbname << "." << CONF_TABLE_NAME <<
 			" JOIN " << m_dbname << "." << CONF_TYPE_TABLE_NAME <<
 			" ON " << m_dbname << "." << CONF_TABLE_NAME << "." << CONF_COL_TYPE_ID << "=" << m_dbname << "." << CONF_TYPE_TABLE_NAME << "." << CONF_TYPE_COL_TYPE_ID <<
@@ -249,6 +249,7 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 			found = true;
 			ID = atoi(row[0]);
 			db_type = row[1];
+			conf_ttl = atoi(row[2]);
 		}
 		mysql_free_result(res);
 		if(!found)
@@ -748,6 +749,7 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 {
 	ostringstream insert_str;
 	ostringstream insert_event_str;
+	ostringstream update_ttl_str;
 	string facility = get_only_tango_host(name);
 #ifndef _MULTI_TANGO_HOST
 	facility = add_domain(facility);
@@ -756,7 +758,8 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	cout<< __func__ << ": name="<<name<<" -> facility="<<facility<<" attr_name="<<attr_name<< endl;
 	int id=-1;
 	string data_type = get_data_type(type, format, write_type);
-	int ret = find_attr_id_type(facility, attr_name, id, data_type);
+	unsigned int conf_ttl=0;
+	int ret = find_attr_id_type(facility, attr_name, id, data_type, conf_ttl);
 	//ID already present but different configuration (attribute type)
 	if(ret == -2)
 	{
@@ -769,7 +772,27 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	//ID found and same configuration (attribute type): do nothing
 	if(ret == 0)
 	{
+#ifdef _LIB_DEBUG
 		cout<< __func__ << ": ALREADY CONFIGURED with same configuration: "<<facility<<"/"<<attr_name<<" with ID="<<id << endl;
+#endif
+		if(conf_ttl != ttl)
+		{
+#ifdef _LIB_DEBUG
+			cout<< __func__ << ": .... BUT different ttl: updating " << conf_ttl << " to " << ttl << endl;
+#endif
+			update_ttl_str <<
+				"UPDATE " << m_dbname << "." << CONF_TABLE_NAME << " SET " <<
+					CONF_COL_TTL << "=" << ttl <<
+					" WHERE " << CONF_COL_ID << "=" << id;
+
+			if(mysql_query(dbp, update_ttl_str.str().c_str()))
+			{
+				stringstream tmp;
+				tmp << "ERROR in query=" << update_ttl_str.str() << ", err=" << mysql_error(dbp);
+				cout << __func__<< ": " << tmp.str() << endl;
+				Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+			}
+		}
 		insert_event_str <<
 			"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
 				" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
