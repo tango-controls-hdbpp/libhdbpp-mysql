@@ -162,7 +162,7 @@ public:
 
 	//void connect_db(string host, string user, string password, string dbname);
 	int find_attr_id(string facility, string attr_name, int &ID);
-	int find_attr_id_type(string facility, string attr_name, int &ID, string attr_type);
+	int find_attr_id_type(string facility, string attr_name, int &ID, string attr_type, unsigned int &conf_ttl);
 	int find_last_event(int ID, string &event);
 	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
 	virtual int insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
