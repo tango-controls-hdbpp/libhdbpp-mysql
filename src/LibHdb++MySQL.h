@@ -141,6 +141,7 @@ private:
 	MYSQL *dbp;
 	string m_dbname;
 	map<string,int> attr_ID_map;
+	bool lightschema;
 	
 	string get_only_attr_name(string str);
 	string get_only_tango_host(string str);
