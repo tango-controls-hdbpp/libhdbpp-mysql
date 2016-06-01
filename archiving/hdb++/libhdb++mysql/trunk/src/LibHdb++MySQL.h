@@ -132,6 +132,12 @@
 #define PARAM_COL_ARCHIVEPERIOD			"archive_period"
 #define PARAM_COL_DESCRIPTION			"description"
 
+//######## INFORMATION SCHEMA ########
+#define INFORMATION_SCHEMA				"INFORMATION_SCHEMA"
+#define INF_SCHEMA_COLUMN_NAME			"COLUMN_NAME"
+#define INF_SCHEMA_COLUMNS				"COLUMNS"
+#define INF_SCHEMA_TABLE_SCHEMA			"TABLE_SCHEMA"
+#define INF_SCHEMA_TABLE_NAME			"TABLE_NAME"
 
 
 class HdbPPMySQL : public AbstractDB
@@ -141,8 +147,14 @@ private:
 	MYSQL *dbp;
 	string m_dbname;
 	map<string,int> attr_ID_map;
-	bool lightschema;
+	bool lightschema;	//without recv_time and insert_time
+	bool autodetectschema;
 	
+	vector<Tango::CmdArgType> v_type;/*DEV_DOUBLE, DEV_STRING, ..*/
+	vector<Tango::AttrDataFormat> v_format;/*SCALAR, SPECTRUM, ..*/
+	vector<Tango::AttrWriteType> v_write_type;/*READ, READ_WRITE, ..*/
+	map<string,bool > table_column_map;
+
 	string get_only_attr_name(string str);
 	string get_only_tango_host(string str);
 #ifndef _MULTI_TANGO_HOST
@@ -154,6 +166,7 @@ private:
 
 	string get_data_type(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	string get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
+	bool autodetect_column(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, string column_name);
 
 public:
 
@@ -171,11 +184,11 @@ public:
 	virtual int event_Attr(string name, unsigned char event);
 
 private:
-	template <typename Type> int extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull);
-	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool is_unsigned, bool isNull=false);
-	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull=false);
-	int store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull=false);
-	int store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
+	template <typename Type> int extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull);
+	template <typename Type> int store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool is_unsigned, bool isNull=false);
+	template <typename Type> int store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull=false);
+	int store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull=false);
+	int store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
 	template <typename Type> bool is_nan_or_inf(Type val);
 };
 
