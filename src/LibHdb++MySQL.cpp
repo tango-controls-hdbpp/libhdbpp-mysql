@@ -45,7 +45,29 @@ static const char __FILE__rev[] = __FILE__ " $Id: $";
 
 HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 {
+	v_type.push_back(Tango::DEV_BOOLEAN);
+	v_type.push_back(Tango::DEV_UCHAR);
+	v_type.push_back(Tango::DEV_SHORT);
+	v_type.push_back(Tango::DEV_USHORT);
+	v_type.push_back(Tango::DEV_LONG);
+	v_type.push_back(Tango::DEV_ULONG);
+	v_type.push_back(Tango::DEV_LONG64);
+	v_type.push_back(Tango::DEV_ULONG64);
+	v_type.push_back(Tango::DEV_FLOAT);
+	v_type.push_back(Tango::DEV_DOUBLE);
+	v_type.push_back(Tango::DEV_STRING);
+	v_type.push_back(Tango::DEV_STATE);
+	v_type.push_back(Tango::DEV_ENCODED);
+
+	v_format.push_back(Tango::SCALAR);
+	v_format.push_back(Tango::SPECTRUM);
+	//v_format.push_back<Tango::IMAGE>;
+
+	v_write_type.push_back(Tango::READ);
+	v_write_type.push_back(Tango::READ_WRITE);
+
 	lightschema = false;
+	autodetectschema = false;
 	dbp = new MYSQL();
 	if(!mysql_init(dbp))
 	{
@@ -92,6 +114,7 @@ HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 #ifdef _LIB_DEBUG
 		cout << __func__<< ": lightschema key not found" << endl;
 #endif
+		autodetectschema = true;
 	}
 	if(!mysql_real_connect(dbp, host.c_str(), user.c_str(), password.c_str(), dbname.c_str(), port, NULL, 0))
 	{
@@ -107,7 +130,29 @@ HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 		cout << __func__<< ": mysql connection OK" << endl;
 #endif
 	}
+	if(autodetectschema)
+	{
+		for(vector<Tango::CmdArgType>::iterator it_type=v_type.begin(); it_type!=v_type.end(); it_type++)
+		{
+			for(vector<Tango::AttrDataFormat>::iterator it_format=v_format.begin(); it_format!=v_format.end(); it_format++)
+			{
+				for(vector<Tango::AttrWriteType>::iterator it_write_type=v_write_type.begin(); it_write_type!=v_write_type.end(); it_write_type++)
+				{
+					bool detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_INS_TIME);
+					table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_INS_TIME, detected));
 
+					detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_RCV_TIME);
+					table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_RCV_TIME, detected));
+
+					detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_QUALITY);
+					table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_QUALITY, detected));
+
+					detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_ERROR_DESC);
+					table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_ERROR_DESC, detected));
+				}
+			}
+		}
+	}
 }
 
 HdbPPMySQL::~HdbPPMySQL()
@@ -420,52 +465,52 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 	{
 		case Tango::DEV_DOUBLE:
 		{
-			ret = extract_and_store<Tango::DevDouble>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE, false/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevDouble>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_FLOAT:
 		{
-			ret = extract_and_store<Tango::DevFloat>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_FLOAT, false/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevFloat>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_FLOAT, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_LONG:
 		{
-			ret = extract_and_store<Tango::DevLong>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, false/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevLong>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_ULONG:
 		{
-			ret = extract_and_store<Tango::DevULong>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, true/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevULong>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_LONG64:
 		{
-			ret = extract_and_store<Tango::DevLong64>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, false/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevLong64>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_ULONG64:
 		{
-			ret = extract_and_store<Tango::DevULong64>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, true/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevULong64>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_SHORT:
 		{
-			ret = extract_and_store<Tango::DevShort>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevShort>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_USHORT:
 		{
-			ret = extract_and_store<Tango::DevUShort>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, true/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevUShort>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_BOOLEAN:
 		{
-			ret = extract_and_store<Tango::DevBoolean>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevBoolean>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_UCHAR:
 		{
-			ret = extract_and_store<Tango::DevUChar>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevUChar>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_STRING:
@@ -476,17 +521,17 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 				(write_type != Tango::READ && data->attr_value->extract_read(vsval_r) && data->attr_value->extract_set(vsval_w))))	//TODO: WO
 			{
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, write_type, ev_time, rcv_time, table_name);
+					ret = store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name);
 				else
-					ret = store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name);
+					ret = store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name);
 			}
 			else
 			{
 				vsval_r.push_back(""); //fake value
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, write_type, ev_time, rcv_time, table_name, true);
+					ret = store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, true);
 				else
-					ret = store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, true);
+					ret = store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, true);
 				if(!isNull)
 					cout << __func__<<": failed to extract " << attr_name << endl;
 				return ret;
@@ -511,15 +556,15 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 					st = (Tango::DevState)0; //fake value
 				}
 				vstval_r.push_back(st);
-				ret = store_scalar<Tango::DevState>(attr_name, vstval_r, vstval_w, quality, error_desc, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+				ret = store_scalar<Tango::DevState>(attr_name, vstval_r, vstval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 				return ret;
 			}
 			else
 			{
-				ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+				ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			}
 #else	//TODO: extract_read fails on state attribute
-			ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+			ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_format, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 #endif
 			break;
 		}
@@ -537,7 +582,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 	return ret;
 }
 
-template <typename Type> int HdbPPMySQL::extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
+template <typename Type> int HdbPPMySQL::extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 	int ret;
 	vector<Type>	val_r;
@@ -546,17 +591,17 @@ template <typename Type> int HdbPPMySQL::extract_and_store(string attr_name, Tan
 		(write_type != Tango::READ && data->attr_value->extract_read(val_r) && data->attr_value->extract_set(val_w))))
 	{
 		if(data_format == Tango::SCALAR)
-			ret = store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
+			ret = store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
 		else
-			ret = store_array<Type>(attr_name, val_r, val_w, quality, error_desc, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
+			ret = store_array<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
 	}
 	else
 	{
 		val_r.push_back((Type)0); //fake value
 		if(data_format == Tango::SCALAR)
-			ret = store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
+			ret = store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
 		else
-			ret = store_array<Type>(attr_name, val_r, val_w, quality, error_desc, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
+			ret = store_array<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
 		if(!isNull)
 			cout << __func__<<": failed to extract " << attr_name << endl;
 	}
@@ -974,7 +1019,7 @@ int HdbPPMySQL::event_Attr(string name, unsigned char event)
 
 //=============================================================================
 //=============================================================================
-template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
+template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -1004,24 +1049,94 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 		Tango::Except::throw_exception(DATA_ERROR,"ID not found",__func__);
 	}
 	int ID=it->second;
+
+	bool detected_insert_time = true;
+	bool detected_recv_time = true;
+	bool detected_quality = true;
+	bool detected_error = true;
+	if(autodetectschema)
+	{
+		try
+		{
+			detected_insert_time = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_INS_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_insert_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_INS_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_recv_time = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_RCV_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_recv_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_RCV_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_quality = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_QUALITY);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_quality = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_QUALITY) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_error = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_ERROR_DESC);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_error = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_ERROR_DESC) NOT FOUND" << endl;
+#endif
+		}
+	}
+	else if(lightschema)
+	{
+		detected_insert_time = false;
+		detected_recv_time = false;
+	}
+
 	ostringstream query_str;
 
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << table_name <<
 			" (" << SC_COL_ID << "," << SC_COL_EV_TIME << ",";
-	if(!lightschema)
-		query_str << SC_COL_INS_TIME << "," << SC_COL_RCV_TIME << ",";
-	query_str << SC_COL_QUALITY << "," << SC_COL_ERROR_DESC << "," << SC_COL_VALUE_R;
+	if(detected_insert_time)
+		query_str << SC_COL_INS_TIME << ",";
+	if(detected_recv_time)
+		query_str << SC_COL_RCV_TIME << ",";
+	if(detected_quality)
+		query_str << SC_COL_QUALITY << ",";
+	if(detected_error)
+		query_str << SC_COL_ERROR_DESC << ",";
+	query_str << SC_COL_VALUE_R;
 	if(!(write_type == Tango::READ))	//RW
 		query_str << "," << SC_COL_VALUE_W;
 	query_str << ")";
 
 	query_str << " VALUES (?,FROM_UNIXTIME(?),";
-	if(!lightschema)
-		query_str << "NOW(6),FROM_UNIXTIME(?),";
-	query_str	<< "?,?,?";
+	if(detected_insert_time)
+		query_str << "NOW(6),";//insert_time
+	if(detected_recv_time)
+		query_str << "FROM_UNIXTIME(?),";//recv_time
+	if(detected_quality)
+		query_str << "?,";//quality
+	if(detected_error)
+		query_str << "?,";//error
+	query_str << "?";	//value_r
 	if(!(write_type == Tango::READ))	//RW
-		query_str << ",?";
+		query_str << ",?";//value_w
 	query_str << ")";
 
 	MYSQL_STMT	*pstmt;
@@ -1043,7 +1158,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
 	{
 		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), INSERT failed" << ", err=" << mysql_stmt_error(pstmt);
+		tmp << "mysql_stmt_prepare(), INSERT failed" << ", err='" << mysql_stmt_error(pstmt) << "' query='" << query_str.str() << "'";
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
@@ -1087,16 +1202,20 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	}
 
 	int_data[0] = ID;
-	int_data[1] = quality;
+	if(detected_quality)
+		int_data[1] = quality;
 	double_data[0] = ev_time;
-	if(!lightschema)
+	if(detected_recv_time)
 		double_data[1] = rcv_time;
-	error_data = error_desc;
-	error_data_len = error_data.length();
-	if(error_data_len == 0)
-		error_data_is_null = 1;
-	else
-		error_data_is_null = 0;
+	if(detected_error)
+	{
+		error_data = error_desc;
+		error_data_len = error_data.length();
+		if(error_data_len == 0)
+			error_data_is_null = 1;
+		else
+			error_data_is_null = 0;
+	}
 	memset(plog_bind, 0, sizeof(plog_bind));
 
 	size_t plog_bind_ind=0;
@@ -1113,7 +1232,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 	plog_bind[plog_bind_ind].length= 0;
 	plog_bind_ind++;
 
-	if(!lightschema)
+	if(detected_recv_time)
 	{
 		plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_DOUBLE;
 		plog_bind[plog_bind_ind].buffer= (void *)&double_data[1];
@@ -1121,19 +1240,24 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 		plog_bind[plog_bind_ind].length= 0;
 		plog_bind_ind++;
 	}
+	if(detected_quality)
+	{
+		plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[plog_bind_ind].buffer= (void *)&int_data[1];
+		plog_bind[plog_bind_ind].is_null= 0;
+		plog_bind[plog_bind_ind].length= 0;
+		plog_bind_ind++;
+	}
 
-	plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
-	plog_bind[plog_bind_ind].buffer= (void *)&int_data[1];
-	plog_bind[plog_bind_ind].is_null= 0;
-	plog_bind[plog_bind_ind].length= 0;
-	plog_bind_ind++;
-
-	plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
-	plog_bind[plog_bind_ind].buffer= (void *)error_data.c_str();
-	plog_bind[plog_bind_ind].is_null= &error_data_is_null;
-	error_data_len=error_data.length();
-	plog_bind[plog_bind_ind].length= &error_data_len;
-	plog_bind_ind++;
+	if(detected_error)
+	{
+		plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[plog_bind_ind].buffer= (void *)error_data.c_str();
+		plog_bind[plog_bind_ind].is_null= &error_data_is_null;
+		error_data_len=error_data.length();
+		plog_bind[plog_bind_ind].length= &error_data_len;
+		plog_bind_ind++;
+	}
 
 	plog_bind[plog_bind_ind].buffer_type= mysql_value_type;
 	plog_bind[plog_bind_ind].buffer= (void *)&value_data[0];
@@ -1188,7 +1312,7 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 
 //=============================================================================
 //=============================================================================
-template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
+template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -1219,15 +1343,78 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	}
 	int ID=it->second;
 	uint32_t max_size = (value_r.size() > value_w.size()) ? value_r.size() : value_w.size();
+
+	bool detected_insert_time = true;
+	bool detected_recv_time = true;
+	bool detected_quality = true;
+	bool detected_error = true;
+	if(autodetectschema)
+	{
+		try
+		{
+			detected_insert_time = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_INS_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_insert_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_INS_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_recv_time = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_RCV_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_recv_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_RCV_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_quality = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_QUALITY);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_quality = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_QUALITY) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_error = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_ERROR_DESC);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_error = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_ERROR_DESC) NOT FOUND" << endl;
+#endif
+		}
+	}
+	else if(lightschema)
+	{
+		detected_insert_time = false;
+		detected_recv_time = false;
+	}
+
 	ostringstream query_str;
 
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << table_name <<
 			" (" << ARR_COL_ID << "," << SC_COL_EV_TIME << ",";
-	if(!lightschema)
-		query_str << SC_COL_INS_TIME << "," << SC_COL_RCV_TIME << ",";
-	query_str << ARR_COL_QUALITY << "," << ARR_COL_ERROR_DESC << "," << ARR_COL_IDX << "," << ARR_COL_DIMX_R << "," <<
-		ARR_COL_DIMY_R << "," << ARR_COL_VALUE_R;
+	if(detected_insert_time)
+		query_str << SC_COL_INS_TIME << ",";
+	if(detected_recv_time)
+		query_str << SC_COL_RCV_TIME << ",";
+	if(detected_quality)
+		query_str << ARR_COL_QUALITY << ",";
+	if(detected_error)
+		query_str << ARR_COL_ERROR_DESC << ",";
+	query_str << ARR_COL_IDX << "," << ARR_COL_DIMX_R << "," << ARR_COL_DIMY_R << "," << ARR_COL_VALUE_R;
 	if(!(write_type == Tango::READ))	//RW
 		query_str << "," << ARR_COL_DIMX_W << "," << ARR_COL_DIMY_W << "," << ARR_COL_VALUE_W;
 	query_str << ")";
@@ -1236,9 +1423,15 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	for(size_t idx=0; idx < max_size; idx++)
 	{
 		query_str << " (?,FROM_UNIXTIME(?),";
-		if(!lightschema)
-			query_str << "NOW(6),FROM_UNIXTIME(?),";
-		query_str	<< "?,?,?,?,?,?";
+		if(detected_insert_time)
+			query_str << "NOW(6),";
+		if(detected_recv_time)
+			query_str << "FROM_UNIXTIME(?),";
+		if(detected_quality)
+			query_str << "?,";
+		if(detected_error)
+			query_str << "?,";
+		query_str << "?,?,?,?";
 		if(!(write_type == Tango::READ))	//RW
 			query_str << ",?,?,?";
 		query_str << ")";
@@ -1248,15 +1441,25 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 	if(max_size == 0)
 	{
 		query_str << "(?,FROM_UNIXTIME(?),";
-		if(!lightschema)
-			query_str << "NOW(6),FROM_UNIXTIME(?),";
-		query_str	<< "?,?,?,?,?,?";
+		if(detected_insert_time)
+			query_str << "NOW(6),";
+		if(detected_recv_time)
+			query_str << "FROM_UNIXTIME(?),";
+		if(detected_quality)
+			query_str << "?,";
+		if(detected_error)
+			query_str << "?,";
+		query_str << "?,?,?,?";
 		if(!(write_type == Tango::READ))	//RW
 			query_str << ",?,?,?";
 		query_str << ")";
 	}
-	int param_count_single = 8;	//param in single value insert
-	if(!lightschema)
+	int param_count_single = 6;	//param in single value insert
+	if(detected_recv_time)
+		param_count_single++;
+	if(detected_quality)
+		param_count_single++;
+	if(detected_error)
 		param_count_single++;
 	if(write_type != Tango::READ)
 		param_count_single += 3;
@@ -1327,13 +1530,17 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		}
 
 		int_data[7*idx+0] = ID;
-		int_data[7*idx+1] = quality;
-		error_data[idx] = error_desc;
-		error_data_len[idx] = error_data[idx].length();
-		if(error_data_len[idx] == 0)
-			error_data_is_null[idx] = 1;
-		else
-			error_data_is_null[idx] = 0;
+		if(detected_quality)
+			int_data[7*idx+1] = quality;
+		if(detected_error)
+		{
+			error_data[idx] = error_desc;
+			error_data_len[idx] = error_data[idx].length();
+			if(error_data_len[idx] == 0)
+				error_data_is_null[idx] = 1;
+			else
+				error_data_is_null[idx] = 0;
+		}
 		int_data[7*idx+2] = idx;
 		int_data[7*idx+3] = attr_r_dim.dim_x;
 		int_data[7*idx+4] = attr_r_dim.dim_y;
@@ -1343,7 +1550,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 			int_data[7*idx+6] = attr_w_dim.dim_y;
 		}
 		double_data[2*idx+0] = ev_time;
-		if(!lightschema)
+		if(detected_recv_time)
 			double_data[2*idx+1] = rcv_time;
 
 		size_t plog_bind_ind = 0;
@@ -1360,7 +1567,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
 		plog_bind_ind++;
 
-		if(!lightschema)
+		if(detected_recv_time)
 		{
 			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_DOUBLE;
 			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&double_data[2*idx+1];
@@ -1369,18 +1576,24 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 			plog_bind_ind++;
 		}
 
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+1];
-		plog_bind[param_count_single*idx+plog_bind_ind].is_null= 0;
-		plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
-		plog_bind_ind++;
+		if(detected_quality)
+		{
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+1];
+			plog_bind[param_count_single*idx+plog_bind_ind].is_null= 0;
+			plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
+			plog_bind_ind++;
+		}
 
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)error_data[idx].c_str();
-		plog_bind[param_count_single*idx+plog_bind_ind].is_null= &error_data_is_null[idx];
-		error_data_len[idx]=error_data[idx].length();
-		plog_bind[param_count_single*idx+plog_bind_ind].length= &error_data_len[idx];
-		plog_bind_ind++;
+		if(detected_error)
+		{
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)error_data[idx].c_str();
+			plog_bind[param_count_single*idx+plog_bind_ind].is_null= &error_data_is_null[idx];
+			error_data_len[idx]=error_data[idx].length();
+			plog_bind[param_count_single*idx+plog_bind_ind].length= &error_data_len[idx];
+			plog_bind_ind++;
+		}
 
 		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
 		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+2];
@@ -1440,7 +1653,8 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		value_data[2*idx+1]=(Type)0;	//useless
 
 		int_data[7*idx+0] = ID;
-		int_data[7*idx+1] = quality;
+		if(detected_quality)
+			int_data[7*idx+1] = quality;
 		int_data[7*idx+2] = idx;
 		int_data[7*idx+3] = attr_r_dim.dim_x;
 		int_data[7*idx+4] = attr_r_dim.dim_y;
@@ -1450,7 +1664,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 			int_data[7*idx+6] = attr_w_dim.dim_y;
 		}
 		double_data[2*idx+0] = ev_time;
-		if(!lightschema)
+		if(detected_recv_time)
 			double_data[2*idx+1] = rcv_time;
 
 		size_t plog_bind_ind = 0;
@@ -1467,7 +1681,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
 		plog_bind_ind++;
 
-		if(!lightschema)
+		if(detected_recv_time)
 		{
 			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_DOUBLE;
 			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&double_data[2*idx+1];
@@ -1476,18 +1690,24 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 			plog_bind_ind++;
 		}
 
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+1];
-		plog_bind[param_count_single*idx+plog_bind_ind].is_null= 0;
-		plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
-		plog_bind_ind++;
+		if(detected_quality)
+		{
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+1];
+			plog_bind[param_count_single*idx+plog_bind_ind].is_null= 0;
+			plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
+			plog_bind_ind++;
+		}
 
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)error_data[idx].c_str();
-		plog_bind[param_count_single*idx+plog_bind_ind].is_null= &error_data_is_null[idx];
-		error_data_len[idx]=error_data[idx].length();
-		plog_bind[param_count_single*idx+plog_bind_ind].length= &error_data_len[idx];
-		plog_bind_ind++;
+		if(detected_error)
+		{
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)error_data[idx].c_str();
+			plog_bind[param_count_single*idx+plog_bind_ind].is_null= &error_data_is_null[idx];
+			error_data_len[idx]=error_data[idx].length();
+			plog_bind[param_count_single*idx+plog_bind_ind].length= &error_data_len[idx];
+			plog_bind_ind++;
+		}
 
 		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
 		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+2];
@@ -1576,7 +1796,7 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 
 //=============================================================================
 //=============================================================================
-int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull)
+int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -1606,22 +1826,92 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 		Tango::Except::throw_exception(DATA_ERROR,"ID not found",__func__);
 	}
 	int ID=it->second;
+
+	bool detected_insert_time = true;
+	bool detected_recv_time = true;
+	bool detected_quality = true;
+	bool detected_error = true;
+	if(autodetectschema)
+	{
+		try
+		{
+			detected_insert_time = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_INS_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_insert_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_INS_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_recv_time = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_RCV_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_recv_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_RCV_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_quality = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_QUALITY);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_quality = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_QUALITY) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_error = table_column_map.at(get_table_name(data_type, Tango::SCALAR, write_type)+"_"+SC_COL_ERROR_DESC);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_error = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_ERROR_DESC) NOT FOUND" << endl;
+#endif
+		}
+	}
+	else if(lightschema)
+	{
+		detected_insert_time = false;
+		detected_recv_time = false;
+	}
+
 	ostringstream query_str;
 
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << table_name <<
 			" (" << SC_COL_ID << "," SC_COL_EV_TIME << ",";
-	if(!lightschema)
-		query_str << SC_COL_INS_TIME << "," << SC_COL_RCV_TIME << ",";
-	query_str << SC_COL_QUALITY << "," << SC_COL_ERROR_DESC << "," <<SC_COL_VALUE_R;
+	if(detected_insert_time)
+		query_str << SC_COL_INS_TIME << ",";
+	if(detected_recv_time)
+		query_str << SC_COL_RCV_TIME << ",";
+	if(detected_quality)
+		query_str << SC_COL_QUALITY << ",";
+	if(detected_error)
+		query_str << SC_COL_ERROR_DESC << ",";
+	query_str << SC_COL_VALUE_R;
 	if(!(write_type == Tango::READ))	//RW
 		query_str << "," << SC_COL_VALUE_W;
 	query_str << ")";
 
 	query_str << " VALUES (?,FROM_UNIXTIME(?),";
-	if(!lightschema)
-		query_str << "NOW(6),FROM_UNIXTIME(?),";
-	query_str << "?,?,?";
+	if(detected_insert_time)
+		query_str << "NOW(6),";
+	if(detected_recv_time)
+		query_str << "FROM_UNIXTIME(?),";
+	if(detected_quality)
+		query_str << "?,";
+	if(detected_error)
+		query_str << "?,";
+	query_str << "?";	//value_r
 	if(!(write_type == Tango::READ))	//RW
 		query_str << ",?";
 	query_str << ")";
@@ -1645,7 +1935,7 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
 	{
 		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), INSERT failed" << ", err=" << mysql_stmt_error(pstmt);
+		tmp << "mysql_stmt_prepare(), INSERT failed" << ", err='" << mysql_stmt_error(pstmt) << "' query='" << query_str.str() << "'";
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
@@ -1676,16 +1966,20 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 	}
 
 	int_data[0] = ID;
-	int_data[1] = quality;
+	if(detected_quality)
+		int_data[1] = quality;
 	double_data[0] = ev_time;
-	if(!lightschema)
+	if(detected_recv_time)
 		double_data[1] = rcv_time;
-	error_data = error_desc;
-	error_data_len = error_data.length();
-	if(error_data_len == 0)
-		error_data_is_null = 1;
-	else
-		error_data_is_null = 0;
+	if(detected_error)
+	{
+		error_data = error_desc;
+		error_data_len = error_data.length();
+		if(error_data_len == 0)
+			error_data_is_null = 1;
+		else
+			error_data_is_null = 0;
+	}
 	memset(plog_bind, 0, sizeof(plog_bind));
 
 	size_t plog_bind_ind = 0;
@@ -1702,7 +1996,7 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 	plog_bind[plog_bind_ind].length= 0;
 	plog_bind_ind++;
 
-	if(!lightschema)
+	if(detected_recv_time)
 	{
 		plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_DOUBLE;
 		plog_bind[plog_bind_ind].buffer= (void *)&double_data[1];
@@ -1711,18 +2005,24 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 		plog_bind_ind++;
 	}
 
-	plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
-	plog_bind[plog_bind_ind].buffer= (void *)&int_data[1];
-	plog_bind[plog_bind_ind].is_null= 0;
-	plog_bind[plog_bind_ind].length= 0;
-	plog_bind_ind++;
+	if(detected_quality)
+	{
+		plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
+		plog_bind[plog_bind_ind].buffer= (void *)&int_data[1];
+		plog_bind[plog_bind_ind].is_null= 0;
+		plog_bind[plog_bind_ind].length= 0;
+		plog_bind_ind++;
+	}
 
-	plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
-	plog_bind[plog_bind_ind].buffer= (void *)error_data.c_str();
-	plog_bind[plog_bind_ind].is_null= &error_data_is_null;
-	error_data_len=error_data.length();
-	plog_bind[plog_bind_ind].length= &error_data_len;
-	plog_bind_ind++;
+	if(detected_error)
+	{
+		plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[plog_bind_ind].buffer= (void *)error_data.c_str();
+		plog_bind[plog_bind_ind].is_null= &error_data_is_null;
+		error_data_len=error_data.length();
+		plog_bind[plog_bind_ind].length= &error_data_len;
+		plog_bind_ind++;
+	}
 
 	plog_bind[plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
 	plog_bind[plog_bind_ind].buffer= (void *)value_data[0].c_str();
@@ -1777,7 +2077,7 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 
 //=============================================================================
 //=============================================================================
-int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull)
+int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -1808,15 +2108,78 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 	}
 	int ID=it->second;
 	uint32_t max_size = (value_r.size() > value_w.size()) ? value_r.size() : value_w.size();
+
+	bool detected_insert_time = true;
+	bool detected_recv_time = true;
+	bool detected_quality = true;
+	bool detected_error = true;
+	if(autodetectschema)
+	{
+		try
+		{
+			detected_insert_time = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_INS_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_insert_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_INS_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_recv_time = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_RCV_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_recv_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_RCV_TIME) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_quality = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_QUALITY);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_quality = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_QUALITY) NOT FOUND" << endl;
+#endif
+		}
+		try
+		{
+			detected_error = table_column_map.at(get_table_name(data_type, Tango::SPECTRUM, write_type)+"_"+SC_COL_ERROR_DESC);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_error = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...SC_COL_ERROR_DESC) NOT FOUND" << endl;
+#endif
+		}
+	}
+	else if(lightschema)
+	{
+		detected_insert_time = false;
+		detected_recv_time = false;
+	}
+
 	ostringstream query_str;
 
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << table_name <<
 			" (" << ARR_COL_ID << "," << ARR_COL_EV_TIME << ",";
-	if(!lightschema)
-		query_str << ARR_COL_INS_TIME << "," << ARR_COL_RCV_TIME << ",";
-	query_str << ARR_COL_QUALITY << "," << ARR_COL_ERROR_DESC << "," << ARR_COL_IDX << "," << ARR_COL_DIMX_R << "," <<
-			ARR_COL_DIMY_R << "," << ARR_COL_VALUE_R;
+	if(detected_insert_time)
+		query_str << ARR_COL_INS_TIME << ",";
+	if(detected_recv_time)
+		query_str << ARR_COL_RCV_TIME << ",";
+	if(detected_quality)
+		query_str << ARR_COL_QUALITY << ",";
+	if(detected_error)
+		query_str << ARR_COL_ERROR_DESC << ",";
+	query_str << ARR_COL_IDX << "," << ARR_COL_DIMX_R << "," <<	ARR_COL_DIMY_R << "," << ARR_COL_VALUE_R;
 	if(!(write_type == Tango::READ))	//RW
 		query_str << "," << ARR_COL_DIMX_W << "," << ARR_COL_DIMY_W << "," << ARR_COL_VALUE_W;
 	query_str << ")";
@@ -1825,17 +2188,27 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 	for(unsigned int idx=0; idx < max_size; idx++)
 	{
 		query_str << "(?,FROM_UNIXTIME(?),";
-		if(!lightschema)
-			query_str << "NOW(6),FROM_UNIXTIME(?),";
-		query_str << "?,?,?,?,?,?";
+		if(detected_insert_time)
+			query_str << "NOW(6),";
+		if(detected_recv_time)
+			query_str << "FROM_UNIXTIME(?),";
+		if(detected_quality)
+			query_str << "?,";
+		if(detected_error)
+			query_str << "?,";
+		query_str << "?,?,?,?";
 		if(!(write_type == Tango::READ))	//RW
 			query_str << ",?,?,?";
 		query_str << ")";
 		if(idx < max_size-1)
 			query_str << ",";
 	}
-	int param_count_single = 8;	//param in single value insert
-	if(!lightschema)
+	int param_count_single = 6;	//param in single value insert
+	if(detected_recv_time)
+		param_count_single++;
+	if(detected_quality)
+		param_count_single++;
+	if(detected_error)
 		param_count_single++;
 	if(write_type != Tango::READ)
 		param_count_single += 3;
@@ -1890,13 +2263,17 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 		}
 
 		int_data[7*idx+0] = ID;
-		int_data[7*idx+1] = quality;
-		error_data[idx] = error_desc;
-		error_data_len[idx] = error_data[idx].length();
-		if(error_data_len[idx] == 0)
-			error_data_is_null[idx] = 1;
-		else
-			error_data_is_null[idx] = 0;
+		if(detected_quality)
+			int_data[7*idx+1] = quality;
+		if(detected_error)
+		{
+			error_data[idx] = error_desc;
+			error_data_len[idx] = error_data[idx].length();
+			if(error_data_len[idx] == 0)
+				error_data_is_null[idx] = 1;
+			else
+				error_data_is_null[idx] = 0;
+		}
 		int_data[7*idx+2] = idx;
 		int_data[7*idx+3] = attr_r_dim.dim_x;
 		int_data[7*idx+4] = attr_r_dim.dim_y;
@@ -1906,7 +2283,7 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 			int_data[7*idx+6] = attr_w_dim.dim_y;
 		}
 		double_data[2*idx+0] = ev_time;
-		if(!lightschema)
+		if(detected_recv_time)
 			double_data[2*idx+1] = rcv_time;
 
 		size_t plog_bind_ind = 0;
@@ -1923,7 +2300,7 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 		plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
 		plog_bind_ind++;
 
-		if(!lightschema)
+		if(detected_recv_time)
 		{
 			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_DOUBLE;
 			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&double_data[2*idx+1];
@@ -1932,18 +2309,24 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 			plog_bind_ind++;
 		}
 
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+1];
-		plog_bind[param_count_single*idx+plog_bind_ind].is_null= 0;
-		plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
-		plog_bind_ind++;
+		if(detected_quality)
+		{
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+1];
+			plog_bind[param_count_single*idx+plog_bind_ind].is_null= 0;
+			plog_bind[param_count_single*idx+plog_bind_ind].length= 0;
+			plog_bind_ind++;
+		}
 
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
-		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)error_data[idx].c_str();
-		plog_bind[param_count_single*idx+plog_bind_ind].is_null= &error_data_is_null[idx];
-		error_data_len[idx]=error_data[idx].length();
-		plog_bind[param_count_single*idx+plog_bind_ind].length= &error_data_len[idx];
-		plog_bind_ind++;
+		if(detected_error)
+		{
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_VARCHAR;
+			plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)error_data[idx].c_str();
+			plog_bind[param_count_single*idx+plog_bind_ind].is_null= &error_data_is_null[idx];
+			error_data_len[idx]=error_data[idx].length();
+			plog_bind[param_count_single*idx+plog_bind_ind].length= &error_data_len[idx];
+			plog_bind_ind++;
+		}
 
 		plog_bind[param_count_single*idx+plog_bind_ind].buffer_type= MYSQL_TYPE_LONG;
 		plog_bind[param_count_single*idx+plog_bind_ind].buffer= (void *)&int_data[7*idx+2];
@@ -2330,6 +2713,66 @@ string HdbPPMySQL::get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int fo
 	ostringstream table_name;
 	table_name << "att_" << get_data_type(type,format,write_type);
 	return table_name.str();
+}
+
+//=============================================================================
+//=============================================================================
+bool HdbPPMySQL::autodetect_column(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, string column_name)
+{
+	ostringstream query_str;
+	query_str <<
+		"SELECT " << INF_SCHEMA_COLUMN_NAME << " FROM " << INFORMATION_SCHEMA << "." << INF_SCHEMA_COLUMNS << " WHERE " << INF_SCHEMA_TABLE_SCHEMA <<
+			"='" << m_dbname << "' AND " << INF_SCHEMA_TABLE_NAME << "='" << get_table_name(type, format, write_type) << "'";
+	if(mysql_query(dbp, query_str.str().c_str()))
+	{
+		stringstream tmp;
+		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_error(dbp);
+		cout << __func__<< ": " << tmp.str() << endl;
+		//Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+	}
+	else
+	{
+		MYSQL_RES *res;
+		MYSQL_ROW row;
+		/*res = mysql_use_result(dbp);
+		my_ulonglong num_found = mysql_num_rows(res);
+		if(num_found == 0)*/
+		res = mysql_store_result(dbp);
+		if(res == NULL)
+		{
+			cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
+			return false;
+		}
+#ifdef _LIB_DEBUG
+		else
+		{
+			my_ulonglong num_found = mysql_num_rows(res);
+			if(num_found > 0)
+			{
+				cout << __func__<< ": SUCCESS in query: " << query_str.str() << " num_found=" << num_found << endl;
+			}
+			else
+			{
+				cout << __func__<< ": NO RESULT in query: " << query_str.str() << endl;
+				mysql_free_result(res);
+				return -1;
+			}
+		}
+#endif
+		bool found = false;
+		while ((row = mysql_fetch_row(res)))
+		{
+			//cout << __func__<< ": looping result -> " << row[0] << " looking for -> " << column_name << endl;
+			if(row[0] == column_name)
+			{
+				found = true;
+				break;
+			}
+		}
+		mysql_free_result(res);
+		return found;
+	}
+	return false;
 }
 
 //=============================================================================
