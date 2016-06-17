@@ -28,6 +28,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <queue>
 #include <stdint.h>
 
 //Tango:
@@ -97,24 +98,29 @@
 #define SC_COL_VALUE_R				"value_r"
 #define SC_COL_VALUE_W				"value_w"
 #define SC_COL_QUALITY				"quality"
-#define SC_COL_ERROR_DESC			"error_desc"
+#define SC_COL_ERROR_DESC_ID		"att_error_desc_id"
 
 
 
 //######## att_array_... ########
-#define ARR_COL_ID					"att_conf_id"
-#define ARR_COL_INS_TIME			"insert_time"
-#define ARR_COL_RCV_TIME			"recv_time"
-#define ARR_COL_EV_TIME				"data_time"
-#define ARR_COL_VALUE_R				"value_r"
-#define ARR_COL_VALUE_W				"value_w"
+#define ARR_COL_ID					SC_COL_ID
+#define ARR_COL_INS_TIME			SC_COL_INS_TIME
+#define ARR_COL_RCV_TIME			SC_COL_RCV_TIME
+#define ARR_COL_EV_TIME				SC_COL_EV_TIME
+#define ARR_COL_VALUE_R				SC_COL_VALUE_R
+#define ARR_COL_VALUE_W				SC_COL_VALUE_W
 #define ARR_COL_IDX					"idx"
 #define ARR_COL_DIMX_R				"dim_x_r"
 #define ARR_COL_DIMY_R				"dim_y_r"
 #define ARR_COL_DIMX_W				"dim_x_w"
 #define ARR_COL_DIMY_W				"dim_y_w"
-#define ARR_COL_QUALITY				"quality"
-#define ARR_COL_ERROR_DESC			"error_desc"
+#define ARR_COL_QUALITY				SC_COL_QUALITY
+#define ARR_COL_ERROR_DESC_ID		SC_COL_ERROR_DESC_ID
+
+//######## att_error_desc ########
+#define ERR_TABLE_NAME				"att_error_desc"
+#define ERR_COL_ID					"att_error_desc_id"
+#define ERR_COL_ERROR_DESC			"error_desc"
 
 
 //######## att_parameter ########
@@ -149,6 +155,8 @@ private:
 	map<string,int> attr_ID_map;
 	bool lightschema;	//without recv_time and insert_time
 	bool autodetectschema;
+	map<string,int> attr_ERR_ID_map;
+	queue<string> attr_ERR_queue;
 	
 	vector<Tango::CmdArgType> v_type;/*DEV_DOUBLE, DEV_STRING, ..*/
 	vector<Tango::AttrDataFormat> v_format;/*SCALAR, SPECTRUM, ..*/
@@ -178,6 +186,9 @@ public:
 	int find_attr_id(string facility, string attr_name, int &ID);
 	int find_attr_id_type(string facility, string attr_name, int &ID, string attr_type, unsigned int &conf_ttl);
 	int find_last_event(int ID, string &event);
+	int find_err_id(string err, int &ERR_ID);
+	void cache_err_id(string error_desc, int &ERR_ID);
+	int insert_error(string err, int &ERR_ID);
 	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
 	virtual int insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
 	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/);
