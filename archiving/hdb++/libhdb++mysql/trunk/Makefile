@@ -1,7 +1,7 @@
 
 include ../../Make-hdb++.in
 
-CXXFLAGS += -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(LIBHDB_INC)
+CXXFLAGS += -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(ZEROMQ_INC) -I$(LIBHDB_INC)
 CXX = g++
 
 
