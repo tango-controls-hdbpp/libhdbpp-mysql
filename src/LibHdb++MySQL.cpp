@@ -246,7 +246,18 @@ int HdbPPMySQL::find_attr_id(string facility, string attr, int &ID)
 		while ((row = mysql_fetch_row(res)))
 		{
 			found = true;
-			ID = atoi(row[0]);
+			if(row[0])
+			{
+				ID = atoi(row[0]);
+			}
+			else	//NOT POSSIBLE!!
+			{
+#ifdef _LIB_DEBUG
+				cout << __func__<< ": ID NULL in query: " << query_str.str() << endl;
+#endif
+				found = false;
+			}
+
 		}	
 		mysql_free_result(res);
 		if(!found)
@@ -323,10 +334,20 @@ int HdbPPMySQL::find_attr_id_type(string facility, string attr, int &ID, string 
 		bool found = false;
 		while ((row = mysql_fetch_row(res)))
 		{
+			if(row[0] == NULL)	//NOT POSSIBLE!!!
+			{
+#ifdef _LIB_DEBUG
+				cout << __func__<< ": ID NULL in query: " << query_str.str() << endl;
+#endif
+				continue;
+			}
 			found = true;
 			ID = atoi(row[0]);
 			db_type = row[1];
-			conf_ttl = atoi(row[2]);
+            if(row[2])
+                    conf_ttl = atoi(row[2]);
+            else
+                    conf_ttl = 0;
 		}
 		mysql_free_result(res);
 		if(!found)
@@ -461,7 +482,17 @@ int HdbPPMySQL::find_err_id(string err, int &ERR_ID)
 		while ((row = mysql_fetch_row(res)))
 		{
 			found = true;
-			ERR_ID = atoi(row[0]);
+			if(row[0])
+			{
+				ERR_ID = atoi(row[0]);
+			}
+			else //NOT POSSIBLE!!
+			{
+#ifdef _LIB_DEBUG
+				cout << __func__<< ": ID NULL in query: " << query_str.str() << endl;
+#endif
+				found = false;
+			}
 		}
 		mysql_free_result(res);
 		if(!found)
@@ -613,11 +644,20 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 			{
 				while ((row = mysql_fetch_row(res)))
 				{
-					ERR_ID = atoi(row[0]);
+					if(row[0])
+					{
+						ERR_ID = atoi(row[0]);
 #ifdef _LIB_DEBUG
-					cout << __func__<< ": found last id for '"<<error_desc << "' ERR_ID="<<ERR_ID<< endl;
+						cout << __func__<< ": found last id for '"<<error_desc << "' ERR_ID="<<ERR_ID<< endl;
 #endif
-					break;
+						break;
+					}
+					else //NOT POSSIBLE!!!
+					{
+#ifdef _LIB_DEBUG
+						cout << __func__<< ": NOT found last id for '"<<error_desc << "' ERR_ID=NULL"<< endl;
+#endif
+					}
 				}
 				mysql_free_result(res);
 			}
