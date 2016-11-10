@@ -433,12 +433,14 @@ int HdbPPMySQL::find_last_event(int ID, string &event)
 
 int HdbPPMySQL::find_err_id(string err, int &ERR_ID)
 {
+	char err_escaped[2 * err.length() + 1];
+	mysql_escape_string(err_escaped, err.c_str(), err.length());
 	ostringstream query_str;
 	//string facility_no_domain = remove_domain(facility);
 	//string facility_with_domain = add_domain(facility);
 	query_str <<
 		"SELECT " << ERR_COL_ID << " FROM " << m_dbname << "." << ERR_TABLE_NAME <<
-			" WHERE " << ERR_COL_ERROR_DESC << " = '" << err << "'";
+			" WHERE " << ERR_COL_ERROR_DESC << " = '" << err_escaped << "'";
 
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
