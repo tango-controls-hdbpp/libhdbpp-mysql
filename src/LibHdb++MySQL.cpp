@@ -1219,6 +1219,41 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 	return 0;
 }
 
+int HdbPPMySQL::updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*/)
+{
+	ostringstream update_ttl_str;
+	string facility = get_only_tango_host(name);
+#ifndef _MULTI_TANGO_HOST
+	facility = add_domain(facility);
+#endif
+	string attr_name = get_only_attr_name(name);
+
+	int id=0;
+	int ret = find_attr_id(facility, attr_name, id);
+	if(ret < 0)
+	{
+		stringstream tmp;
+		tmp << "ERROR "<<facility<<"/"<<attr_name<<" NOT FOUND";
+		cout << __func__<< ": " << tmp.str() << endl;
+		Tango::Except::throw_exception(DATA_ERROR,tmp.str(),__func__);
+	}
+
+	update_ttl_str <<
+			"UPDATE " << m_dbname << "." << CONF_TABLE_NAME << " SET " <<
+			CONF_COL_TTL << "=" << ttl <<
+			" WHERE " << CONF_COL_ID << "=" << id;
+
+	if(mysql_query(dbp, update_ttl_str.str().c_str()))
+	{
+		stringstream tmp;
+		tmp << "ERROR in query=" << update_ttl_str.str() << ", err=" << mysql_error(dbp);
+		cout << __func__<< ": " << tmp.str() << endl;
+		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+	}
+
+	return 0;
+}
+
 int HdbPPMySQL::event_Attr(string name, unsigned char event)
 {
 	ostringstream insert_event_str;

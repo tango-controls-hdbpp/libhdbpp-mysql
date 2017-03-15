@@ -192,6 +192,7 @@ public:
 	virtual int insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
 	virtual int insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
 	virtual int configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/);
+	virtual int updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*/);
 	virtual int event_Attr(string name, unsigned char event);
 
 private:
