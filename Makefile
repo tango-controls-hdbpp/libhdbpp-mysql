@@ -1,7 +1,13 @@
+LIBHDBPP_DIR = .libhdbpp
+LIBHDBPP_INC = ./$(LIBHDBPP_DIR)/src
+MAKE_INC = .hdbpp-common
 
-include ../../Make-hdb++.in
+DBIMPL_INC = `mysql_config --include`
+DBIMPL_LIB = `mysql_config --libs_r`
 
-CXXFLAGS += -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) -I$(TANGO_INC) -I$(OMNI_INC) -I$(ZEROMQ_INC) -I$(LIBHDB_INC)
+include ./$(MAKE_INC)/Make-hdbpp.in
+
+CXXFLAGS += -std=gnu++0x -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) $(INC_DIR) -I$(LIBHDBPP_INC)
 CXX = g++
 
 
@@ -15,9 +21,9 @@ SHLIB_SUFFIX = so
 
 #  release numbers for libraries
 #
- LIBVERSION    = 4
+ LIBVERSION    = 5
  LIBRELEASE    = 0
- LIBSUBRELEASE = 2
+ LIBSUBRELEASE = 0
 #
 
 LIBRARY       = $(BASELIBNAME).a
@@ -35,7 +41,7 @@ lib/LibHdb++MySQL: lib obj obj/LibHdb++MySQL.o
 	ln -sf $(SHLIB) lib/$(DT_SONAME)
 	ar rcs lib/$(LIBRARY) obj/LibHdb++MySQL.o
 
-obj/LibHdb++MySQL.o: src/LibHdb++MySQL.cpp src/LibHdb++MySQL.h $(LIBHDB_INC)/LibHdb++.h
+obj/LibHdb++MySQL.o: src/LibHdb++MySQL.cpp src/LibHdb++MySQL.h $(LIBHDBPP_INC)/LibHdb++.h
 	$(CXX) $(CXXFLAGS) -fPIC -c src/LibHdb++MySQL.cpp -o $@
 
 clean:
