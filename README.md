@@ -2,7 +2,7 @@
 Library for HDB++ implementing MySQL schema
 
 ## building
-git clone --recursive http://github.com/ELETTRA-SincrotroneTrieste/libhdbpp-mysql.git  
+git clone --recursive http://github.com/tango-controls/libhdbpp-mysql.git  
 cd libhdbpp-mysql  
 export TANGO_DIR=/usr/local/tango-9.2.5a  
 export OMNIORB_DIR=/usr/local/omniorb-4.2.1  
