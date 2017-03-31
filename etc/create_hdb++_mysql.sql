@@ -16,7 +16,7 @@ name VARCHAR(255) NOT NULL DEFAULT '',
 INDEX(att_conf_data_type_id)
 ) ENGINE=MyISAM COMMENT='Attribute Configuration Table';
 
-DROP TABLE att_conf_data_type;
+DROP TABLE IF EXISTS att_conf_data_type;
 CREATE TABLE IF NOT EXISTS att_conf_data_type
 (
 att_conf_data_type_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -37,7 +37,8 @@ INSERT INTO att_conf_data_type (data_type, tango_data_type) VALUES
 ('scalar_devdouble_ro', 5),('scalar_devdouble_rw', 5),('array_devdouble_ro', 5),('array_devdouble_rw', 5),
 ('scalar_devstring_ro', 8),('scalar_devstring_rw', 8),('array_devstring_ro', 8),('array_devstring_rw', 8),
 ('scalar_devstate_ro', 19),('scalar_devstate_rw', 19),('array_devstate_ro', 19),('array_devstate_rw', 19),
-('scalar_devencoded_ro', 28),('scalar_devencoded_rw', 28),('array_devencoded_ro', 28),('array_devencoded_rw', 28);
+('scalar_devencoded_ro', 28),('scalar_devencoded_rw', 28),('array_devencoded_ro', 28),('array_devencoded_rw', 28),
+('scalar_devenum_ro', 29),('scalar_devenum_rw', 29),('array_devenum_ro', 29),('array_devenum_rw', 29);
 
 CREATE TABLE IF NOT EXISTS att_history
 (
@@ -48,7 +49,7 @@ INDEX(att_conf_id),
 INDEX(att_history_event_id)
 ) ENGINE=MyISAM COMMENT='Attribute Configuration Events History Table';
 
-DROP TABLE att_history_event;
+DROP TABLE IF EXISTS att_history_event;
 CREATE TABLE IF NOT EXISTS att_history_event
 (	
 att_history_event_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -835,4 +836,62 @@ quality TINYINT(1) DEFAULT NULL,
 att_error_desc_id INT UNSIGNED NULL DEFAULT NULL,
 INDEX att_conf_id_data_time (att_conf_id,data_time)
 ) ENGINE=MyISAM COMMENT='Array Encoded ReadWrite Values Table';
+
+CREATE TABLE IF NOT EXISTS att_scalar_devenum_ro
+(
+att_conf_id INT UNSIGNED NOT NULL,
+data_time TIMESTAMP(6) DEFAULT 0,
+recv_time TIMESTAMP(6) DEFAULT 0,
+insert_time TIMESTAMP(6) DEFAULT 0,
+value_r SMALLINT DEFAULT NULL,
+quality TINYINT(1) DEFAULT NULL,
+att_error_desc_id INT UNSIGNED NULL DEFAULT NULL,
+INDEX att_conf_id_data_time (att_conf_id,data_time)
+) ENGINE=MyISAM COMMENT='Scalar Enum ReadOnly Values Table';
+
+CREATE TABLE IF NOT EXISTS att_scalar_devenum_rw
+(
+att_conf_id INT UNSIGNED NOT NULL,
+data_time TIMESTAMP(6) DEFAULT 0,
+recv_time TIMESTAMP(6) DEFAULT 0,
+insert_time TIMESTAMP(6) DEFAULT 0,
+value_r SMALLINT DEFAULT NULL,
+value_w SMALLINT DEFAULT NULL,
+quality TINYINT(1) DEFAULT NULL,
+att_error_desc_id INT UNSIGNED NULL DEFAULT NULL,
+INDEX att_conf_id_data_time (att_conf_id,data_time)
+) ENGINE=MyISAM COMMENT='Scalar Enum ReadWrite Values Table';
+
+CREATE TABLE IF NOT EXISTS att_array_devenum_ro
+(
+att_conf_id INT UNSIGNED NOT NULL,
+data_time TIMESTAMP(6) DEFAULT 0,
+recv_time TIMESTAMP(6) DEFAULT 0,
+insert_time TIMESTAMP(6) DEFAULT 0,
+idx INT UNSIGNED NOT NULL,
+dim_x_r INT UNSIGNED NOT NULL,
+dim_y_r INT UNSIGNED NOT NULL DEFAULT 0,
+value_r SMALLINT DEFAULT NULL,
+quality TINYINT(1) DEFAULT NULL,
+att_error_desc_id INT UNSIGNED NULL DEFAULT NULL,
+INDEX att_conf_id_data_time (att_conf_id,data_time)
+) ENGINE=MyISAM COMMENT='Array Enum ReadOnly Values Table';
+
+CREATE TABLE IF NOT EXISTS att_array_devenum_rw
+(
+att_conf_id INT UNSIGNED NOT NULL,
+data_time TIMESTAMP(6) DEFAULT 0,
+recv_time TIMESTAMP(6) DEFAULT 0,
+insert_time TIMESTAMP(6) DEFAULT 0,
+idx INT UNSIGNED NOT NULL,
+dim_x_r INT UNSIGNED NOT NULL,
+dim_y_r INT UNSIGNED NOT NULL DEFAULT 0,
+value_r SMALLINT DEFAULT NULL,
+dim_x_w INT UNSIGNED NOT NULL,
+dim_y_w INT UNSIGNED NOT NULL DEFAULT 0,
+value_w SMALLINT DEFAULT NULL,
+quality TINYINT(1) DEFAULT NULL,
+att_error_desc_id INT UNSIGNED NULL DEFAULT NULL,
+INDEX att_conf_id_data_time (att_conf_id,data_time)
+) ENGINE=MyISAM COMMENT='Array Enum ReadWrite Values Table';
 

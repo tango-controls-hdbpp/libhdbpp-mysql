@@ -51,6 +51,7 @@
 #define TYPE_DEV_STRING				"devstring"
 #define TYPE_DEV_STATE				"devstate"
 #define TYPE_DEV_ENCODED			"devencoded"
+#define TYPE_DEV_ENUM				"devenum"
 
 #define TYPE_RO						"ro"
 #define TYPE_RW						"rw"

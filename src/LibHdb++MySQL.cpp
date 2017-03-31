@@ -852,6 +852,11 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 #endif
 			break;
 		}
+		case Tango::DEV_ENUM:
+		{
+			ret = extract_and_store<Tango::DevEnum>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
+			break;
+		}
 		default:
 		{
 			TangoSys_MemStream	os;
@@ -3014,6 +3019,10 @@ string HdbPPMySQL::get_data_type(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int for
 	else if(type==Tango::DEV_ENCODED)
 	{
 		data_type << TYPE_DEV_ENCODED << "_";
+	}
+	else if(type==Tango::DEV_ENUM)
+	{
+		data_type << TYPE_DEV_ENUM << "_";
 	}
 
 	if(write_type==Tango::READ)
