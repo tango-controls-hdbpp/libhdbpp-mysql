@@ -675,9 +675,8 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 	return 0;
 }
 
-int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type)
+void HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type)
 {
-	int ret = -1;
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
 #endif
@@ -749,52 +748,52 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 	{
 		case Tango::DEV_DOUBLE:
 		{
-			ret = extract_and_store<Tango::DevDouble>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE, false/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevDouble>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_DOUBLE, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_FLOAT:
 		{
-			ret = extract_and_store<Tango::DevFloat>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_FLOAT, false/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevFloat>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_FLOAT, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_LONG:
 		{
-			ret = extract_and_store<Tango::DevLong>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, false/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevLong>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_ULONG:
 		{
-			ret = extract_and_store<Tango::DevULong>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, true/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevULong>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONG, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_LONG64:
 		{
-			ret = extract_and_store<Tango::DevLong64>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, false/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevLong64>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_ULONG64:
 		{
-			ret = extract_and_store<Tango::DevULong64>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, true/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevULong64>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_LONGLONG, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_SHORT:
 		{
-			ret = extract_and_store<Tango::DevShort>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevShort>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_USHORT:
 		{
-			ret = extract_and_store<Tango::DevUShort>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, true/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevUShort>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_BOOLEAN:
 		{
-			ret = extract_and_store<Tango::DevBoolean>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevBoolean>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_UCHAR:
 		{
-			ret = extract_and_store<Tango::DevUChar>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevUChar>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			break;
 		}
 		case Tango::DEV_STRING:
@@ -805,20 +804,19 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 				(write_type != Tango::READ && data->attr_value->extract_read(vsval_r) && data->attr_value->extract_set(vsval_w))))	//TODO: WO
 			{
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name);
+					store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name);
 				else
-					ret = store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name);
+					store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name);
 			}
 			else
 			{
 				vsval_r.push_back(""); //fake value
 				if(data_format == Tango::SCALAR)
-					ret = store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, true);
+					store_scalar_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, true);
 				else
-					ret = store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, true);
+					store_array_string(attr_name, vsval_r, vsval_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, true);
 				if(!isNull)
 					cout << __func__<<": failed to extract " << attr_name << endl;
-				return ret;
 			}
 			break;
 		}
@@ -840,12 +838,11 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 					st = (Tango::DevState)0; //fake value
 				}
 				vstval_r.push_back(st);
-				ret = store_scalar<Tango::DevState>(attr_name, vstval_r, vstval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
-				return ret;
+				store_scalar<Tango::DevState>(attr_name, vstval_r, vstval_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			}
 			else
 			{
-				ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
+				extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
 			}
 #else	//TODO: extract_read fails on state attribute
 			ret = extract_and_store<Tango::DevState>(attr_name, data, quality, error_desc, data_format, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_TINY, true/*is_unsigned*/, isNull);
@@ -854,7 +851,7 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 		}
 		case Tango::DEV_ENUM:
 		{
-			ret = extract_and_store<Tango::DevEnum>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
+			extract_and_store<Tango::DevEnum>(attr_name, data, quality, error_desc, data_type, data_format, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, MYSQL_TYPE_SHORT, false/*is_unsigned*/, isNull);
 			break;
 		}
 		default:
@@ -868,38 +865,35 @@ int HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_typ
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": exiting... ret="<<ret << endl;
 #endif
-	return ret;
 }
 
-template <typename Type> int HdbPPMySQL::extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
+template <typename Type> void HdbPPMySQL::extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
-	int ret;
 	vector<Type>	val_r;
 	vector<Type>	val_w;
 	if(!isNull && ((write_type == Tango::READ && data->attr_value->extract_read(val_r)) ||
 		(write_type != Tango::READ && data->attr_value->extract_read(val_r) && data->attr_value->extract_set(val_w))))
 	{
 		if(data_format == Tango::SCALAR)
-			ret = store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
+			store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
 		else
-			ret = store_array<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
+			store_array<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned);
 	}
 	else
 	{
 		val_r.push_back((Type)0); //fake value
 		if(data_format == Tango::SCALAR)
-			ret = store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
+			store_scalar<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
 		else
-			ret = store_array<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
+			store_array<Type>(attr_name, val_r, val_w, quality, error_desc, data_type, write_type, attr_r_dim, attr_w_dim, ev_time, rcv_time, table_name, mysql_value_type, _is_unsigned, true);
+
 		if(!isNull)
 			cout << __func__<<": failed to extract " << attr_name << endl;
 	}
-	return ret;
 }
 
-int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type)
+void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type)
 {
-	int ret = -1;
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
 #endif
@@ -1089,10 +1083,9 @@ int HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataTy
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": exiting... ret="<<ret << endl;
 #endif
-	return ret;
 }
 
-int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/)
+void HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/)
 {
 	ostringstream insert_str;
 	ostringstream insert_event_str;
@@ -1152,7 +1145,7 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 			cout << __func__<< ": " << tmp.str() << endl;
 			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 		}
-		return 0;
+		return;
 	}
 
 	//add domain name to fqdn
@@ -1220,11 +1213,9 @@ int HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
-
-	return 0;
 }
 
-int HdbPPMySQL::updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*/)
+void HdbPPMySQL::updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*/)
 {
 	ostringstream update_ttl_str;
 	string facility = get_only_tango_host(name);
@@ -1255,11 +1246,9 @@ int HdbPPMySQL::updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
-
-	return 0;
 }
 
-int HdbPPMySQL::event_Attr(string name, unsigned char event)
+void HdbPPMySQL::event_Attr(string name, unsigned char event)
 {
 	ostringstream insert_event_str;
 	string facility = get_only_tango_host(name);
@@ -1337,13 +1326,11 @@ int HdbPPMySQL::event_Attr(string name, unsigned char event)
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(DATA_ERROR,tmp.str(),__func__);
 	}
-
-	return 0;
 }
 
 //=============================================================================
 //=============================================================================
-template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
+template <typename Type> void HdbPPMySQL::store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -1629,13 +1616,11 @@ template <typename Type> int HdbPPMySQL::store_scalar(string attr, vector<Type> 
 		cout<< __func__ << ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
-
-	return 0;
 }
 
 //=============================================================================
 //=============================================================================
-template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
+template <typename Type> void HdbPPMySQL::store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -2119,12 +2104,11 @@ template <typename Type> int HdbPPMySQL::store_array(string attr, vector<Type> v
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
 	delete [] plog_bind;
-	return 0;
 }
 
 //=============================================================================
 //=============================================================================
-int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull)
+void HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -2398,13 +2382,11 @@ int HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector<
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
-
-	return 0;
 }
 
 //=============================================================================
 //=============================================================================
-int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull)
+void HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -2738,7 +2720,6 @@ int HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<s
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
 	delete [] plog_bind;
-	return 0;
 }
 
 template <typename Type> bool HdbPPMySQL::is_nan_or_inf(Type val)
