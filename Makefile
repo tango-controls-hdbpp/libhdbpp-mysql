@@ -1,21 +1,31 @@
-LIBHDBPP_DIR = .libhdbpp
-LIBHDBPP_INC = ./$(LIBHDBPP_DIR)/src
+PREFIX=/usr/local
 
 DBIMPL_INC = `mysql_config --include`
 DBIMPL_LIB = `mysql_config --libs_r`
 
-TANGO_INC := ${TANGO_DIR}/include/tango
-OMNIORB_INC := ${OMNIORB_DIR}/include
-ZMQ_INC :=  ${ZMQ_DIR}/include
+ifdef TANGO_INC
+	INC_DIR += -I${TANGO_INC}
+endif
 
-INC_DIR = -I${TANGO_INC} -I${OMNIORB_INC} -I${ZMQ_INC}
+ifdef TANGO_LIB
+	LIB_DIR	+= -L${TANGO_LIB}
+endif
 
-CXXFLAGS += -std=gnu++0x -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) $(INC_DIR) -I$(LIBHDBPP_INC)
+ifdef OMNIORB_LIB
+	LIB_DIR	+= -L${OMNIORB_LIB}
+endif
+
+ifdef LIBHDBPP_INC
+	INC_DIR += -I${LIBHDBPP_INC}
+endif
+
+CXXFLAGS += -std=gnu++0x -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) $(INC_DIR)
+LDFLAGS += $(LIB_DIR) -ltango -lomniORB4 -lomnithread
 
 ##############################################
 # support for shared libray versioning
 #
-LFLAGS_SONAME = $(DBIMPL_LIB) -Wl,-soname,
+LFLAGS_SONAME = $(DBIMPL_LIB) $(LDFLAGS) -Wl,-soname,
 SHLDFLAGS = -shared
 BASELIBNAME       =  libhdb++mysql
 SHLIB_SUFFIX = so
@@ -32,8 +42,6 @@ DT_SONAME     = $(BASELIBNAME).$(SHLIB_SUFFIX).$(LIBVERSION)
 DT_SHLIB      = $(BASELIBNAME).$(SHLIB_SUFFIX).$(LIBVERSION).$(LIBRELEASE).$(LIBSUBRELEASE)
 SHLIB         = $(BASELIBNAME).$(SHLIB_SUFFIX)
 
-
-
 .PHONY : install clean
 
 lib/LibHdb++MySQL: lib obj obj/LibHdb++MySQL.o
@@ -42,7 +50,7 @@ lib/LibHdb++MySQL: lib obj obj/LibHdb++MySQL.o
 	ln -sf $(SHLIB) lib/$(DT_SONAME)
 	ar rcs lib/$(LIBRARY) obj/LibHdb++MySQL.o
 
-obj/LibHdb++MySQL.o: src/LibHdb++MySQL.cpp src/LibHdb++MySQL.h $(LIBHDBPP_INC)/LibHdb++.h
+obj/LibHdb++MySQL.o: src/LibHdb++MySQL.cpp src/LibHdb++MySQL.h
 	$(CXX) $(CXXFLAGS) -fPIC -c src/LibHdb++MySQL.cpp -o $@
 
 clean:
@@ -51,4 +59,13 @@ clean:
 lib obj:
 	@mkdir $@
 	
+install:
+	install -d ${DESTDIR}${PREFIX}/lib
+	install -d ${DESTDIR}${PREFIX}/share/libhdb++mysql
+	install -m 755 lib/libhdb++mysql.so.${LIBVERSION}.${LIBRELEASE}.${LIBSUBRELEASE} ${DESTDIR}${PREFIX}/lib	
+	ln -s ${DESTDIR}${PREFIX}/lib/libhdb++mysql.so.${LIBVERSION}.${LIBRELEASE}.${LIBSUBRELEASE} ${DESTDIR}${PREFIX}/lib/libhdb++mysql.so.${LIBVERSION}
+	install -m 644 etc/add_devenum__hdb++_mysql.sql ${DESTDIR}${PREFIX}/share/libhdb++mysql
+	install -m 644 etc/create_hdb++_mysql_delete_attr_procedure.sql ${DESTDIR}${PREFIX}/share/libhdb++mysql
+	install -m 644 etc/create_hdb++_mysql.sql ${DESTDIR}${PREFIX}/share/libhdb++mysql		
+
 	
