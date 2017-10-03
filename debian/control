@@ -11,7 +11,7 @@ Build-Depends: libhdb++6-dev,
                make
 Standards-Version: 3.9.3
 Section: misc
-Homepage: https://github.com/tango-controls/libhdbpp-mysql
+Homepage: https://github.com/tango-controls-hdbpp/libhdbpp-mysql
 
 Package: libhdb++mysql6
 Priority: optional
