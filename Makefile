@@ -11,8 +11,16 @@ ifdef TANGO_LIB
 	LIB_DIR	+= -L${TANGO_LIB}
 endif
 
+ifdef OMNIORB_INC
+	INC_DIR	+= -L${OMNIORB_INC}
+endif
+
 ifdef OMNIORB_LIB
 	LIB_DIR	+= -L${OMNIORB_LIB}
+endif
+
+ifdef ZMQ_INC
+	INC_DIR += -I${ZMQ_INC}
 endif
 
 ifdef LIBHDBPP_INC
