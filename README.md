@@ -9,7 +9,7 @@ The current release version is 1.0.0
 ## Documentation
 
 * See the Tango documentation [here](http://tango-controls.readthedocs.io/en/latest/administration/services/hdbpp/index.html#hdb-an-archiving-historian-service) for broader information about the HB++ archiving system and its integration into Tango Controls
-* libhdbpp-mysql [CHANGELOG.md](https://github.com/tango-controls/libhdbpp/blob/master/CHANGELOG.md) contains the latest changes both released and in development.
+* libhdbpp-mysql [CHANGELOG.md](https://github.com/tango-controls-hdbpp/libhdbpp/blob/master/CHANGELOG.md) contains the latest changes both released and in development.
 
 ## Building
 
@@ -41,7 +41,7 @@ There are a set of library and include variables that can be set to inform the b
 To get the source, pull from git:
 
 ```bash
-git clone http://github.com/tango-controls/libhdbpp-mysql.git  
+git clone http://github.com/tango-controls-hdbpp/libhdbpp-mysql.git  
 cd libhdbpp-mysql
 ```
 
