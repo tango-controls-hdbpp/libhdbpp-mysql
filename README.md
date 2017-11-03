@@ -8,7 +8,7 @@ The current release version is 1.0.0
 
 ## Documentation
 
-* See the Tango documentation [here](http://tango-controls.readthedocs.io/en/latest/administration/services/hdbpp/index.html#hdb-an-archiving-historian-service) for broader information about the HB++ archiving system and its integration into Tango Controls
+* See the Tango documentation [here](http://tango-controls.readthedocs.io/en/latest/administration/services/hdbpp/index.html#hdb-an-archiving-historian-service) for broader information about the HDB++ archiving system and its integration into Tango Controls
 * libhdbpp-mysql [CHANGELOG.md](https://github.com/tango-controls-hdbpp/libhdbpp/blob/master/CHANGELOG.md) contains the latest changes both released and in development.
 
 ## Building
@@ -18,9 +18,9 @@ The current release version is 1.0.0
 Ensure the development version of the dependencies are installed. These are as follows:
 
 * HDB++ library libhdbpp
-* Tango Controls 9.2.5a - either via debian package or source install.
-* omniORB release 4 - libomniorb4 and libomnithread
-* libzmq - libzmq3-dev or libzmq5-dev
+* Tango Controls 9 or higher - either via debian package or source install.
+* omniORB release 4 - libomniorb4 and libomnithread.
+* libzmq - libzmq3-dev or libzmq5-dev.
 
 ### Build Flags
 

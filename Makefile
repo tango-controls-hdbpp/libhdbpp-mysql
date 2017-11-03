@@ -12,7 +12,7 @@ ifdef TANGO_LIB
 endif
 
 ifdef OMNIORB_INC
-	INC_DIR	+= -L${OMNIORB_INC}
+	INC_DIR	+= -I${OMNIORB_INC}
 endif
 
 ifdef OMNIORB_LIB
@@ -28,7 +28,7 @@ ifdef LIBHDBPP_INC
 endif
 
 CXXFLAGS += -std=gnu++0x -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) $(INC_DIR)
-LDFLAGS += $(LIB_DIR) -ltango -lomniORB4 -lomnithread
+LDFLAGS += $(LIB_DIR)
 
 ##############################################
 # support for shared libray versioning
