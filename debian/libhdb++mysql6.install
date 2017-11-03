@@ -1,0 +1,3 @@
+#! /usr/bin/dh-exec
+usr/lib/libhdb++mysql.so.6* usr/lib/${DEB_HOST_MULTIARCH}/
+usr/share/libhdb++mysql/* usr/share/libhdb++mysql/

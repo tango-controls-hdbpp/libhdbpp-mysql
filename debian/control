@@ -1,0 +1,33 @@
+Source: libhdb++mysql
+Priority: optional
+Maintainer: Stuart James <stuart.james@esrf.fr>
+Build-Depends: libhdb++6-dev,
+               libtango-dev,
+               libomnithread3-dev, 
+               libomniorb4-dev,               
+               default-libmysqlclient-dev,
+               dh-exec, 
+               debhelper (>= 9.0.0), 
+               make
+Standards-Version: 3.9.3
+Section: misc
+Homepage: https://github.com/tango-controls-hdbpp/libhdbpp-mysql
+
+Package: libhdb++mysql6
+Priority: optional
+Section: misc
+Architecture: any
+Multi-Arch: same
+Depends: libhdb++6, 
+         libtango9,
+         libomniorb4-1, 
+         libomnithread3c2,         
+         default-mysql-client,
+         ${shlibs:Depends}, 
+         ${misc:Depends}
+Description: Tango Controls library to archive events into MySQL.
+ This library can be loaded by libhdb++ to provide a MySQL back-end archival 
+ system for Tango Controls. Using this library, tango events are stored
+ into a correctly configured MySQL database. The package includes three
+ sql files to assist the user in setting up the MySQL database tables. 
+ These are available under /usr/share/libhdb++mysql
