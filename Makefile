@@ -54,8 +54,8 @@ SHLIB         = $(BASELIBNAME).$(SHLIB_SUFFIX)
 
 lib/LibHdb++MySQL: lib obj obj/LibHdb++MySQL.o
 	$(CXX) obj/LibHdb++MySQL.o $(SHLDFLAGS) $(LFLAGS_SONAME)$(DT_SONAME) -o lib/$(DT_SHLIB)
-	ln -sf $(DT_SHLIB) lib/$(SHLIB)
-	ln -sf $(SHLIB) lib/$(DT_SONAME)
+	ln -sf $(DT_SHLIB) lib/$(DT_SONAME)
+	ln -sf $(DT_SONAME) lib/$(SHLIB)
 	ar rcs lib/$(LIBRARY) obj/LibHdb++MySQL.o
 
 obj/LibHdb++MySQL.o: src/LibHdb++MySQL.cpp src/LibHdb++MySQL.h
