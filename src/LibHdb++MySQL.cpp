@@ -140,37 +140,40 @@ HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 			{
 				for(vector<Tango::AttrWriteType>::iterator it_write_type=v_write_type.begin(); it_write_type!=v_write_type.end(); it_write_type++)
 				{
+					string table_name = get_table_name(*it_type, *it_format, *it_write_type);
 					if(*it_format == Tango::SCALAR)
 					{
-						bool detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_INS_TIME);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_INS_TIME, detected));
+						bool detected=autodetect_column(table_name, SC_COL_INS_TIME);
+						table_column_map.insert(make_pair(table_name+"_"+SC_COL_INS_TIME, detected));
 
-						detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_RCV_TIME);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_RCV_TIME, detected));
+						detected=autodetect_column(table_name, SC_COL_RCV_TIME);
+						table_column_map.insert(make_pair(table_name+"_"+SC_COL_RCV_TIME, detected));
 
-						detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_QUALITY);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_QUALITY, detected));
+						detected=autodetect_column(table_name, SC_COL_QUALITY);
+						table_column_map.insert(make_pair(table_name+"_"+SC_COL_QUALITY, detected));
 
-						detected=autodetect_column(*it_type, *it_format, *it_write_type, SC_COL_ERROR_DESC_ID);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+SC_COL_ERROR_DESC_ID, detected));
+						detected=autodetect_column(table_name, SC_COL_ERROR_DESC_ID);
+						table_column_map.insert(make_pair(table_name+"_"+SC_COL_ERROR_DESC_ID, detected));
 					}
 					else
 					{
-						bool detected=autodetect_column(*it_type, *it_format, *it_write_type, ARR_COL_INS_TIME);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+ARR_COL_INS_TIME, detected));
+						bool detected=autodetect_column(table_name, ARR_COL_INS_TIME);
+						table_column_map.insert(make_pair(table_name+"_"+ARR_COL_INS_TIME, detected));
 
-						detected=autodetect_column(*it_type, *it_format, *it_write_type, ARR_COL_RCV_TIME);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+ARR_COL_RCV_TIME, detected));
+						detected=autodetect_column(table_name, ARR_COL_RCV_TIME);
+						table_column_map.insert(make_pair(table_name+"_"+ARR_COL_RCV_TIME, detected));
 
-						detected=autodetect_column(*it_type, *it_format, *it_write_type, ARR_COL_QUALITY);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+ARR_COL_QUALITY, detected));
+						detected=autodetect_column(table_name, ARR_COL_QUALITY);
+						table_column_map.insert(make_pair(table_name+"_"+ARR_COL_QUALITY, detected));
 
-						detected=autodetect_column(*it_type, *it_format, *it_write_type, ARR_COL_ERROR_DESC_ID);
-						table_column_map.insert(make_pair(get_table_name(*it_type, *it_format, *it_write_type)+"_"+ARR_COL_ERROR_DESC_ID, detected));
+						detected=autodetect_column(table_name, ARR_COL_ERROR_DESC_ID);
+						table_column_map.insert(make_pair(table_name+"_"+ARR_COL_ERROR_DESC_ID, detected));
 					}
 				}
 			}
 		}
+		bool detected=autodetect_column(PARAM_TABLE_NAME, PARAM_COL_INS_TIME);
+		table_column_map.insert(make_pair(string(PARAM_TABLE_NAME)+"_"+PARAM_COL_INS_TIME, detected));
 	}
 }
 
@@ -930,14 +933,40 @@ void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataT
 	int ID=it->second;
 	ostringstream query_str;
 
+	bool detected_insert_time = true;
+	if(autodetectschema)
+	{
+		try
+		{
+			detected_insert_time = table_column_map.at(string(PARAM_TABLE_NAME)+"_"+PARAM_COL_INS_TIME);
+		}
+		catch(std::out_of_range &e)
+		{
+			detected_insert_time = false;
+#ifdef _LIB_DEBUG
+			cout << __func__<< ": after table_column_map.at(...PARAM_COL_INS_TIME) NOT FOUND" << endl;
+#endif
+		}
+	}
+
 	query_str <<
 		"INSERT INTO " << m_dbname << "." << PARAM_TABLE_NAME <<
-			" (" << PARAM_COL_ID << "," << PARAM_COL_INS_TIME << "," << PARAM_COL_EV_TIME << "," <<
+			" (" << PARAM_COL_ID << ",";
+
+	if(detected_insert_time)
+		query_str << PARAM_COL_INS_TIME << ",";
+
+	query_str << PARAM_COL_EV_TIME << "," <<
 			PARAM_COL_LABEL << "," << PARAM_COL_UNIT << "," << PARAM_COL_STANDARDUNIT << "," <<
 			PARAM_COL_DISPLAYUNIT << "," << PARAM_COL_FORMAT << "," << PARAM_COL_ARCHIVERELCHANGE << "," <<
 			PARAM_COL_ARCHIVEABSCHANGE << "," << PARAM_COL_ARCHIVEPERIOD << "," << PARAM_COL_DESCRIPTION << ")";
 
-	query_str << " VALUES (?,NOW(6),FROM_UNIXTIME(?)," <<
+	query_str << " VALUES (?,";
+
+	if(detected_insert_time)
+		query_str << "NOW(6),";
+
+	query_str << "FROM_UNIXTIME(?)," <<
 			"?,?,?," <<
 			"?,?,?," <<
 			"?,?,?)" ;
@@ -3028,12 +3057,12 @@ string HdbPPMySQL::get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int fo
 
 //=============================================================================
 //=============================================================================
-bool HdbPPMySQL::autodetect_column(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, string column_name)
+bool HdbPPMySQL::autodetect_column(string table_name, string column_name)
 {
 	ostringstream query_str;
 	query_str <<
 		"SELECT " << INF_SCHEMA_COLUMN_NAME << " FROM " << INFORMATION_SCHEMA << "." << INF_SCHEMA_COLUMNS << " WHERE " << INF_SCHEMA_TABLE_SCHEMA <<
-			"='" << m_dbname << "' AND " << INF_SCHEMA_TABLE_NAME << "='" << get_table_name(type, format, write_type) << "'";
+			"='" << m_dbname << "' AND " << INF_SCHEMA_TABLE_NAME << "='" << table_name << "'";
 	if(mysql_query(dbp, query_str.str().c_str()))
 	{
 		stringstream tmp;
