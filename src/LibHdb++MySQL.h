@@ -156,6 +156,7 @@ private:
 	map<string,int> attr_ID_map;
 	bool lightschema;	//without recv_time and insert_time
 	bool autodetectschema;
+	bool ignoreduplicates;	//ignore duplicated key (att_conf_id,data_time) insert failures
 	map<string,int> attr_ERR_ID_map;
 	queue<string> attr_ERR_queue;
 	
