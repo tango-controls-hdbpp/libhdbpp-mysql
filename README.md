@@ -8,7 +8,7 @@ Library for HDB++ implementing MySQL schema
 
 ## Version
 
-The current release version is 1.0.0
+The current release version is 1.0.1
 
 ## Documentation
 
@@ -62,6 +62,36 @@ Once built simply run `make install`. The install can be passed a PREFIX variabl
 #### Building Against Tango Controls 9.2.5a
 
 **The debian package and source install place the headers under /usr/include/tango, so its likely you will need to set TANGO_INC=/usr/include/tango or TANGO_INC=/usr/local/include/tango, depending on your install method.**
+
+## DB Schema
+
+Two files are provided to create the DB schema:
+
+* etc/create_hdb++_mysql.sql
+* etc/create_hdb++_mysql_innodb.sql
+
+In the first file MyISAM is used as DB engine and 3 TIMESTAMP columns (data_time, recv_time, insert_time) are created for every data table.
+MyIsam is deprecated and partitioning on MyIsam tables is no more supported since Mysql 8.
+In the second file InnoDB is used as DB engine and 2 DATETIME columns (data_time, recv_time) are created for every data table.
+A primary key (att_conf_id, data_time) is created for every data table, with this key maximum performances are obtained by partitioning tables by range on data_time column.
+At the same time with this primary key duplicated of data_time with the same att_conf_id are not allowed. To ignore primary key duplication errors, the 'ignore_duplicates' configuration key can be set to 1.
+
+### Partition management
+
+Partitions defined in etc/create_hdb++_mysql_innodb.sql should be adjusted depending on the amount of data really present in the tables. Partitions 'p000' and 'future' should always be present to catch events arriving with wrong (in the past or in the future) timestamps.
+Older partitions could be dropped with the 'DROP PARTITION' command or moved to another database with the 'ALTER TABLE ... EXCHANGE PARTITION' command.
+When approaching to the end of the range of the current partition, 'future' partition should be splitted in two parts to add the new partition with the 'ALTER TABLE ... REORGANIZE PARTITION' command.
+
+### MyIsam to InnoDB schema migration
+
+To migrate from the schema using MyIsam to the schema wit InnoDB and partitiong the suggested sequence is the following:
+
+* rename existing tables (e.g. 'RENAME TABLE att_scalar_devboolean_ro TO att_scalar_devboolean_ro_old;')
+* dump to file renamed tables (e.g. 'SELECT ad.att_conf_id,ad.data_time,ad.recv_time, ad.value_r, ad.quality, ad.att_error_desc_id INTO OUTFILE '/tmp/att_scalar_devboolean_ro.csv' FROM hdbpp.att_scalar_devboolean_ro ad;')
+* optimize MySQL configuration for InnoDB adjusting key_buffer_size, innodb_buffer_pool_size and many more parameters
+* create new schema with 'etc/create_hdb++_mysql_innodb.sql'
+* bulk load data from files into created tables (e.g. 'LOAD DATA LOCAL INFILE '/tmp/att_scalar_devboolean_ro.csv' INTO TABLE att_scalar_devboolean_ro;'). If the table size is big (in the order of tens of million rows) file to be loaded should be splitted into chunks of around 1 million rows: this can be easily done with scripts like 'pt-fifo-split' from Percona Tools.
+* if everything went OK, old renamed tables can be dropped (e.g. 'DROP TABLE att_scalar_devboolean_ro_old;')
 
 ## License
 
