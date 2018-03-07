@@ -70,6 +70,7 @@ HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 
 	lightschema = false;
 	autodetectschema = false;
+	ignoreduplicates = false;
 	dbp = new MYSQL();
 	if(!mysql_init(dbp))
 	{
@@ -117,6 +118,19 @@ HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 		cout << __func__<< ": lightschema key not found" << endl;
 #endif
 		autodetectschema = true;
+	}
+	try
+	{
+		int iignoreduplicates;
+		iignoreduplicates = atoi(db_conf.at("ignore_duplicates").c_str());
+		ignoreduplicates = (iignoreduplicates == 1);
+	}
+	catch(const std::out_of_range& e)
+	{
+#ifdef _LIB_DEBUG
+		cout << __func__<< ": ignore_duplicates key not found" << endl;
+#endif
+		ignoreduplicates = false;
 	}
 	if(!mysql_real_connect(dbp, host.c_str(), user.c_str(), password.c_str(), dbname.c_str(), port, NULL, 0))
 	{
@@ -949,8 +963,11 @@ void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataT
 		}
 	}
 
-	query_str <<
-		"INSERT INTO " << m_dbname << "." << PARAM_TABLE_NAME <<
+	if(!ignoreduplicates)
+		query_str << "INSERT INTO ";
+	else
+		query_str << "INSERT IGNORE INTO ";
+	query_str << m_dbname << "." << PARAM_TABLE_NAME <<
 			" (" << PARAM_COL_ID << ",";
 
 	if(detected_insert_time)
@@ -1452,8 +1469,11 @@ template <typename Type> void HdbPPMySQL::store_scalar(string attr, vector<Type>
 
 	ostringstream query_str;
 
-	query_str <<
-		"INSERT INTO " << m_dbname << "." << table_name <<
+	if(!ignoreduplicates)
+		query_str << "INSERT INTO ";
+	else
+		query_str << "INSERT IGNORE INTO ";
+	query_str << m_dbname << "." << table_name <<
 			" (" << SC_COL_ID << "," << SC_COL_EV_TIME << ",";
 	if(detected_insert_time)
 		query_str << SC_COL_INS_TIME << ",";
@@ -1743,8 +1763,11 @@ template <typename Type> void HdbPPMySQL::store_array(string attr, vector<Type> 
 
 	ostringstream query_str;
 
-	query_str <<
-		"INSERT INTO " << m_dbname << "." << table_name <<
+	if(!ignoreduplicates)
+		query_str << "INSERT INTO ";
+	else
+		query_str << "INSERT IGNORE INTO ";
+	query_str << m_dbname << "." << table_name <<
 			" (" << ARR_COL_ID << "," << SC_COL_EV_TIME << ",";
 	if(detected_insert_time)
 		query_str << SC_COL_INS_TIME << ",";
@@ -2230,8 +2253,11 @@ void HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector
 
 	ostringstream query_str;
 
-	query_str <<
-		"INSERT INTO " << m_dbname << "." << table_name <<
+	if(!ignoreduplicates)
+		query_str << "INSERT INTO ";
+	else
+		query_str << "INSERT IGNORE INTO ";
+	query_str << m_dbname << "." << table_name <<
 			" (" << SC_COL_ID << "," SC_COL_EV_TIME << ",";
 	if(detected_insert_time)
 		query_str << SC_COL_INS_TIME << ",";
@@ -2509,8 +2535,11 @@ void HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<
 
 	ostringstream query_str;
 
-	query_str <<
-		"INSERT INTO " << m_dbname << "." << table_name <<
+	if(!ignoreduplicates)
+		query_str << "INSERT INTO ";
+	else
+		query_str << "INSERT IGNORE INTO ";
+	query_str << m_dbname << "." << table_name <<
 			" (" << ARR_COL_ID << "," << ARR_COL_EV_TIME << ",";
 	if(detected_insert_time)
 		query_str << ARR_COL_INS_TIME << ",";
