@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [1.0.1] - 2018-03-02
+## [1.2.0] - 2018-04-04
+
+### Added
+
+* etc/create_hdb++_mysql_innodb_json.sql file to create the MySQL schema using InnoDB engine and time-range partitioning and JSON field for arrays.
+* etc/hdb++_mysql_migrate_array_json.sql to migrate data from the tables with multiple rows per array element to the tables with JSON fields
+
+### Changed
+
+* LibHdb++MySQL.cpp: added json_array configuration key to store array elements in a JSON field of a single row
+* Updated README.md.
+
+### Removed
+
+## [1.1.0] - 2018-03-02
 
 ### Added
 
