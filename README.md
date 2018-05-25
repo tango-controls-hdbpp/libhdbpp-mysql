@@ -106,6 +106,20 @@ To migrate existing data from the schema using InnoDB and partitiong but multipl
 
 The file etc/hdb++_mysql_migrate_array_json.sql can be used for these operations.
 
+### TTL: per attribute old data deletion
+
+In HDB++ a TimeToLive value in hours can be specified for each attribute. It is meant to let data older than the TTL value specified to be deleted. MySQL does not support this feature in a native way so something ad hoc needs to be implemented and run periodically.
+
+The file etc/create_hdb++_mysql_delete_attr_ttl_procedure.sql can be used to create two stored procedure:
+ * delete_attr_ttl which takes as parameters the attribute name and the ttl value
+ * delete_ttl which takes no parameters and call delete_attr_ttl for all the attributes which ttl is greater than 0
+ 
+ Note that it is preferable to use partitioning and drop the whole old partition. In fact deleting single values in MySQL can have a bad inpact on performances for the following reasons:
+
+* deleting values in MySQL is always a heavy operation
+* if MyISAM is used as DB engine, holes are left in tables after deletion. Tables with holes needs to be optimized (which can take quite a long time), otherwise performances degrade and an exclusive lock on the whole table needs to be taken for every operation (also for inserts).
+
+
 ## License
 
 The code is released under the LGPL3 license and a copy of this license is provided with the code. 
