@@ -160,6 +160,7 @@ private:
 	bool ignoreduplicates;	//ignore duplicated key (att_conf_id,data_time) insert failures
 	map<string,int> attr_ERR_ID_map;
 	queue<string> attr_ERR_queue;
+	map<string,MYSQL_STMT *> pstmt_map;
 	
 	vector<Tango::CmdArgType> v_type;/*DEV_DOUBLE, DEV_STRING, ..*/
 	vector<Tango::AttrDataFormat> v_format;/*SCALAR, SPECTRUM, ..*/

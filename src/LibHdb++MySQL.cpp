@@ -208,6 +208,17 @@ HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
 
 HdbPPMySQL::~HdbPPMySQL()
 {
+	map<string,MYSQL_STMT *>::iterator it_pstmt;
+	for(it_pstmt = pstmt_map.begin(); it_pstmt != pstmt_map.end(); it_pstmt++)
+	{
+		if (mysql_stmt_close(it_pstmt->second))
+		{
+			stringstream tmp;
+			tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(it_pstmt->second);
+			cout << __func__<< ": " << tmp.str() << endl;
+			//Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+	}
 	mysql_close(dbp);
 	delete dbp;
 }
@@ -606,20 +617,31 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 	MYSQL_BIND	plog_bind[1];
 	string		param_data[1];
 	unsigned long param_data_len[1];
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_init(), out of memory";
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_init(), out of memory";
+			cout << __func__<< ": " << tmp.str() << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
 
 	param_data[0] = error_desc;
@@ -696,13 +718,6 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 				mysql_free_result(res);
 			}
 		}
-	}
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
 	return 0;
 }
@@ -1037,20 +1052,31 @@ void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataT
 	int			int_data;
 	string		param_data[9];
 	unsigned long param_data_len[9];
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_init(), out of memory";
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_init(), out of memory";
+			cout << __func__<< ": " << tmp.str() << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), INSERT failed query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
 
 	int_data = ID;
@@ -1151,8 +1177,6 @@ void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataT
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
 		cout << __func__<< ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
 #ifdef _LIB_DEBUG
@@ -1161,13 +1185,6 @@ void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataT
 		cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
 	}
 #endif
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": exiting... ret="<<ret << endl;
@@ -1552,18 +1569,29 @@ template <typename Type> void HdbPPMySQL::store_scalar(string attr, vector<Type>
 	double		double_data[2];
 	Type		value_data[2];
 	int			int_data[3];
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), INSERT failed" << ", err='" << mysql_stmt_error(pstmt) << "' query='" << query_str.str() << "'";
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), INSERT failed" << ", err='" << mysql_stmt_error(pstmt) << "' query='" << query_str.str() << "'";
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
 
 	if(value_r.size() >= 1 && !isNull)
@@ -1688,8 +1716,6 @@ template <typename Type> void HdbPPMySQL::store_scalar(string attr, vector<Type>
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
 		cout<< __func__ << ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
 #ifdef _LIB_DEBUG
@@ -1701,13 +1727,6 @@ template <typename Type> void HdbPPMySQL::store_scalar(string attr, vector<Type>
 
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout<< __func__ << ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 }
 
 //=============================================================================
@@ -1884,19 +1903,31 @@ template <typename Type> void HdbPPMySQL::store_array(string attr, vector<Type> 
 	double		double_data[2*insert_size];	// rcv_time, ev_time
 	Type		value_data[2*insert_size];		//value_r, value_w
 	int		int_data[8*insert_size];		//id, quality, error_desc_id, idx, dimx_r, dimy_r, dimx_w, dimy_w,
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"', err="<<mysql_stmt_error(pstmt);
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"', err="<<mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
+
 	memset(plog_bind, 0, sizeof(MYSQL_BIND)*param_count);
 
 	for(size_t chunk_idx=0; chunk_idx < insert_size; chunk_idx++)
@@ -2184,8 +2215,6 @@ template <typename Type> void HdbPPMySQL::store_array(string attr, vector<Type> 
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() <<  ", err=" << mysql_stmt_error(pstmt);
 		cout << __func__<< ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
@@ -2197,14 +2226,6 @@ template <typename Type> void HdbPPMySQL::store_array(string attr, vector<Type> 
 #endif
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		delete [] plog_bind;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 	delete [] plog_bind;
 	
 	inserted_num += insert_size;
@@ -2358,19 +2379,31 @@ template <typename Type> void HdbPPMySQL::store_array_json(string attr, vector<T
 	string		value_data[2];		//value_r, value_w
 	unsigned long value_data_len[2];
 	int			int_data[7];		//id, quality, error_desc_id, dimx_r, dimy_r, dimx_w, dimy_w,
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"', err="<<mysql_stmt_error(pstmt);
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"', err="<<mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
+
 	memset(plog_bind, 0, sizeof(MYSQL_BIND)*param_count);
 
 	ostringstream ss_value_r,ss_value_w;
@@ -2556,8 +2589,6 @@ template <typename Type> void HdbPPMySQL::store_array_json(string attr, vector<T
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
 		cout << __func__<< ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
@@ -2570,14 +2601,6 @@ template <typename Type> void HdbPPMySQL::store_array_json(string attr, vector<T
 
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		delete [] plog_bind;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 	delete [] plog_bind;
 }
 
@@ -2716,18 +2739,29 @@ void HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector
 	string		value_data[2];
 	unsigned long value_data_len[2];
 	int			int_data[3];
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), INSERT failed" << ", err='" << mysql_stmt_error(pstmt) << "' query='" << query_str.str() << "'";
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), INSERT failed" << ", err='" << mysql_stmt_error(pstmt) << "' query='" << query_str.str() << "'";
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
 
 	if(value_r.size() >= 1 && !isNull)
@@ -2840,8 +2874,6 @@ void HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
 		cout << __func__<< ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << endl;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
 #ifdef _LIB_DEBUG
@@ -2853,13 +2885,6 @@ void HdbPPMySQL::store_scalar_string(string attr, vector<string> value_r, vector
 
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 }
 
 //=============================================================================
@@ -3013,19 +3038,31 @@ void HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<
 	string		value_data[2*max_size];		//value_r, value_w
 	unsigned long value_data_len[2*max_size];
 	int			int_data[8*max_size];		//id, quality, error_desc_id, idx, dimx_r, dimy_r, dimx_w, dimy_w
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"' err="<<mysql_stmt_error(pstmt);
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"' err="<<mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
+
 	memset(plog_bind, 0, sizeof(MYSQL_BIND)*param_count);
 
 	for(size_t idx=0; idx < max_size; idx++)
@@ -3178,8 +3215,6 @@ void HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
 		cout << __func__<< ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
@@ -3192,14 +3227,6 @@ void HdbPPMySQL::store_array_string(string attr, vector<string> value_r, vector<
 
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		delete [] plog_bind;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 	delete [] plog_bind;
 }
 
@@ -3348,19 +3375,31 @@ void HdbPPMySQL::store_array_string_json(string attr, vector<string> value_r, ve
 	string		value_data[2];		//value_r, value_w
 	unsigned long value_data_len[2];
 	int			int_data[7];		//id, quality, error_desc_id, dimx_r, dimy_r, dimx_w, dimy_w
-	pstmt = mysql_stmt_init(dbp);
-	if (!pstmt)
+	map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query_str.str());
+	if(it_pstmt == pstmt_map.end())
 	{
-		cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		pstmt = mysql_stmt_init(dbp);
+		if (!pstmt)
+		{
+			cout << __func__<< ": mysql_stmt_init(), out of memory" << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,"mysql_stmt_init(): out of memory",__func__);
+		}
+		if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+		{
+			stringstream tmp;
+			tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"' err="<<mysql_stmt_error(pstmt);
+			cout << __func__<< ": " << tmp.str() << endl;
+			if (mysql_stmt_close(pstmt))
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
+			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		}
+		pstmt_map.insert(make_pair(query_str.str(), pstmt));
 	}
-	if (mysql_stmt_prepare(pstmt, query_str.str().c_str(), query_str.str().length()))
+	else
 	{
-		stringstream tmp;
-		tmp << "mysql_stmt_prepare(), prepare stmt failed, stmt='"<<query_str.str()<<"' err="<<mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+		pstmt = it_pstmt->second;
 	}
+
 	memset(plog_bind, 0, sizeof(MYSQL_BIND)*param_count);
 
 	ostringstream ss_value_r,ss_value_w;
@@ -3534,8 +3573,6 @@ void HdbPPMySQL::store_array_string_json(string attr, vector<string> value_r, ve
 		stringstream tmp;
 		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
 		cout << __func__<< ": " << tmp.str() << endl;
-		if (mysql_stmt_close(pstmt))
-			cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt) << endl;
 		delete [] plog_bind;
 		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 	}
@@ -3548,14 +3585,6 @@ void HdbPPMySQL::store_array_string_json(string attr, vector<string> value_r, ve
 
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
-	if (mysql_stmt_close(pstmt))
-	{
-		stringstream tmp;
-		tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		delete [] plog_bind;
-		Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-	}
 	delete [] plog_bind;
 }
 
