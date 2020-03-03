@@ -152,6 +152,7 @@ class HdbPPMySQL : public AbstractDB
 private:
 
 	MYSQL *dbp;
+	unsigned long db_mti;
 	string m_dbname;
 	map<string,int> attr_ID_map;
 	bool lightschema;	//without recv_time and insert_time
