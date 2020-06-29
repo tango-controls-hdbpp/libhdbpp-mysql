@@ -26,42 +26,61 @@ Ensure the development version of the dependencies are installed. These are as f
 * omniORB release 4 - libomniorb4 and libomnithread.
 * libzmq - libzmq3-dev or libzmq5-dev.
 
-### Build Flags
-
-There are a set of library and include variables that can be set to inform the build of various dependencies. The flags are only required if you have installed a dependency in a non-standard location. 
-
-| Flag | Notes |
-|------|-------|
-| TANGO_INC | Tango include files directory |
-| TANGO_LIB | Tango lib files directory |
-| OMNIORB_INC | Omniorb include files directory |
-| OMNIORB_LIB | Omniorb lib files directory |
-| ZMQ_INC | ZMQ include files directory |
-| LIBHDBPP_INC | Libhdb++ include files directory |
-| LIBHDBPP_LIB | Libhdb++ lib files directory |
-
 ### Build
 
-To get the source, pull from git:
+The build system uses pkg-config to find some dependencies, for example Tango. If Tango is not installed to a standard location, set PKG_CONFIG_PATH, i.e.
 
 ```bash
-git clone http://github.com/tango-controls-hdbpp/libhdbpp-mysql.git  
-cd libhdbpp-mysql
+export PKG_CONFIG_PATH=/non/standard/tango/install/location
 ```
 
-Set appropriate flags in the environment (or pass them to make) if required, then:
+CMake is also set to search any paths added to CMAKE_PREFIX_PATH. This can be set and passed into CMake instead.
+If HDB++ library libhdbpp is not installed in system paths, CMAKE_INCLUDE_PATH and CMAKE_LIBRARY_PATH should be set to point to the right location. This can be set on the command line at configuration time, i.e.:
 
 ```bash
+cmake -DCMAKE_INCLUDE_PATH=/path/to/local/install/of/libhdbpp/headers -DCMAKE_LIBRARY_PATH=/path/to/local/install/of/libhdbpp/library .. 
+```
+
+Then to build the library:
+
+```bash
+mkdir -p build
+cd build
+cmake ..
 make
 ```
+
+If HDB++ library libhdbpp is not installed in system paths, CMAKE_INCLUDE_PATH and CMAKE_LIBRARY_PATH should be set to point to the right location. This can be set on the command line at configuration time, i.e.:
+
+```bash
+cmake -DCMAKE_INCLUDE_PATH=/path/to/local/install/of/libhdbpp/headers -DCMAKE_LIBRARY_PATH=/path/to/local/install/of/libhdbpp/library .. 
+```
+
+The pkg-config path can also be set with the cmake argument CMAKE_PREFIX_PATH. This can be set on the command line at configuration time, i.e.:
+
+```bash
+cmake -DCMAKE_PREFIX_PATH=/non/standard/tango/install/location .. 
+```
+
+## Build Flags
+
+The following build flags are available
+
+### Standard CMake Flags
+
+The following is a list of common useful CMake flags and their use:
+
+| Flag | Setting | Description |
+|------|-----|-----|
+| CMAKE_INSTALL_PREFIX | PATH | Standard CMake flag to modify the install prefix. |
+| CMAKE_INCLUDE_PATH | PATH[S] | Standard CMake flag to add include paths to the search path. |
+| CMAKE_LIBRARY_PATH | PATH[S] | Standard CMake flag to add paths to the library search path |
+| CMAKE_BUILD_TYPE | Debug/Release | Build type to produce |
+
 
 ## Installation
 
 Once built simply run `make install`. The install can be passed a PREFIX variable, this is set to /usr/local by default. It is also possible to use DESTDIR. Install path is constructed as DESTDIR/PREFIX.
-
-#### Building Against Tango Controls 9.2.5a
-
-**The debian package and source install place the headers under /usr/include/tango, so its likely you will need to set TANGO_INC=/usr/include/tango or TANGO_INC=/usr/local/include/tango, depending on your install method.**
 
 ## DB Schema
 

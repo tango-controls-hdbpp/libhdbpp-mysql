@@ -24,9 +24,17 @@ set(VERSION_PATCH "1")
 set(VERSION_METADATA "")
 set(VERSION_STRING ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
+# Add any include paths from the command line
+list(APPEND INCLUDE_PATHS ${CMAKE_INCLUDE_PATH})
+list(APPEND INCLUDE_PATHS ${CMAKE_SOURCE_DIR})
+list(APPEND LIBRARY_PATHS ${CMAKE_LIBRARY_PATH})
 
 # Start the project
 project(libhdbpp_mysql VERSION ${VERSION_STRING} LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # To build both the static and shared version, we require two projects, we do
 # this by just defining the name appended with the target
@@ -82,9 +90,7 @@ endforeach()
 # Variable to contain a list of all the libs we depend on
 set(HDBPP_MSQL_LIBRARIES
    libhdb++.so
-   libtango.so
-   libomnithread.so
-   libomniORB4.so)
+   )
 
 # Now load the libraries and check each is found, if not
 # this is an error condition, so halt the cmake config
@@ -104,8 +110,6 @@ foreach(LIB ${HDBPP_MSQL_LIBRARIES})
    list(APPEND LIBS_DIR ${FOUND_LIB_${LIB}})
 endforeach(LIB)
 
-message(STATUS "Finally LIBS_DIR " ${LIBS_DIR})
-
 # Source -----------------------------------
 
 add_subdirectory(src)
@@ -120,7 +124,7 @@ add_subdirectory(src)
 add_library(libhdbpp_mysql_shared_library SHARED ${SRC_FILES})
 
 target_link_libraries(libhdbpp_mysql_shared_library PUBLIC ${MYSQL_LIBS})
-target_link_libraries(libhdbpp_mysql_shared_library PUBLIC ${LIBS_DIR})
+target_link_libraries(libhdbpp_mysql_shared_library PUBLIC ${LIBS_DIR} PRIVATE TangoInterfaceLibrary)
 #target_link_libraries(libhdbpp_mysql_shared_library PRIVATE hdb++)
 
 set_target_properties(libhdbpp_mysql_shared_library PROPERTIES 
@@ -147,7 +151,7 @@ set_target_properties(libhdbpp_mysql_shared_library
 #add_library(libhdbpp_mysql_static_library STATIC $<TARGET_OBJECTS:object_library>)
 add_library(libhdbpp_mysql_static_library STATIC ${SRC_FILES})
 target_link_libraries(libhdbpp_mysql_static_library PUBLIC ${MYSQL_LIBS})
-target_link_libraries(libhdbpp_mysql_static_library PUBLIC ${LIBS_DIR})
+target_link_libraries(libhdbpp_mysql_static_library PUBLIC ${LIBS_DIR} PRIVATE TangoInterfaceLibrary)
 #target_link_libraries(libhdbpp_mysql_static_library PRIVATE hdb++)
 set_target_properties(libhdbpp_mysql_static_library PROPERTIES OUTPUT_NAME hdb++mysql)
 
