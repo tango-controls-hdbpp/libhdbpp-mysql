@@ -34,13 +34,6 @@ The build system uses pkg-config to find some dependencies, for example Tango. I
 export PKG_CONFIG_PATH=/non/standard/tango/install/location
 ```
 
-CMake is also set to search any paths added to CMAKE_PREFIX_PATH. This can be set and passed into CMake instead.
-If HDB++ library libhdbpp is not installed in system paths, CMAKE_INCLUDE_PATH and CMAKE_LIBRARY_PATH should be set to point to the right location. This can be set on the command line at configuration time, i.e.:
-
-```bash
-cmake -DCMAKE_INCLUDE_PATH=/path/to/local/install/of/libhdbpp/headers -DCMAKE_LIBRARY_PATH=/path/to/local/install/of/libhdbpp/library .. 
-```
-
 Then to build the library:
 
 ```bash
