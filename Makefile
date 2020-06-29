@@ -28,12 +28,12 @@ ifdef LIBHDBPP_INC
 endif
 
 CXXFLAGS += -std=gnu++0x -Wall -DRELEASE='"$HeadURL$ "' $(DBIMPL_INC) $(INC_DIR)
-LDFLAGS += $(LIB_DIR)
+LDFLAGS += $(LIB_DIR) -ltango -lomnithread -lomniORB4
 
 ##############################################
 # support for shared libray versioning
 #
-LFLAGS_SONAME = $(DBIMPL_LIB) $(LDFLAGS) -Wl,-soname,
+LFLAGS_SONAME = $(DBIMPL_LIB) $(LDFLAGS) -Wl,-z,defs,-soname,
 SHLDFLAGS = -shared
 BASELIBNAME       =  libhdb++mysql
 SHLIB_SUFFIX = so
