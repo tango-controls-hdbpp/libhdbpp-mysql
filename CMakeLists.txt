@@ -46,18 +46,12 @@ include(GNUInstallDirs)
 
 message(STATUS "Searching for libraries...")
 
-execute_process(COMMAND mysql_config --include
-	OUTPUT_VARIABLE MYSQL_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-#string( REGEX MATCH "-I[^;]+" MYSQL_INCLUDE_PATH "${MYSQL_INCLUDE_DIR}" )
-string( REPLACE "-I" "" MYSQL_INCLUDE_DIR "${MYSQL_INCLUDE_DIR}")
-#execute_process(COMMAND mysql_config --include OUTPUT_VARIABLE MYSQL_INCLUDE_DIR)
-#STRING(REGEX REPLACE "\n" "" MYSQL_INCLUDE_DIR ${MYSQL_INCLUDE_DIR})
-execute_process(COMMAND mysql_config --variable=pkglibdir
-	OUTPUT_VARIABLE MYSQL_LIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND mysql_config --libs_r
-    OUTPUT_VARIABLE MYSQL_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
+include(FindPkgConfig)
+pkg_check_modules(LIBMYSQLCLIENT REQUIRED mysqlclient)
 
-#list(APPEND LIBS_DIR ${MYSQL_LIBS})
+foreach(FLAG ${LIBMYSQLCLIENT_CFLAGS_OTHER})
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FLAG}")
+endforeach()
 
 # allow pkg-config to search the CMAKE_PREFIX_PATH
 set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
@@ -123,7 +117,7 @@ add_subdirectory(src)
 #add_library(shared_library SHARED $<TARGET_OBJECTS:object_library>)
 add_library(libhdbpp_mysql_shared_library SHARED ${SRC_FILES})
 
-target_link_libraries(libhdbpp_mysql_shared_library PUBLIC ${MYSQL_LIBS})
+target_link_libraries(libhdbpp_mysql_shared_library PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
 target_link_libraries(libhdbpp_mysql_shared_library PUBLIC ${LIBS_DIR} PRIVATE TangoInterfaceLibrary)
 #target_link_libraries(libhdbpp_mysql_shared_library PRIVATE hdb++)
 
@@ -134,7 +128,7 @@ set_target_properties(libhdbpp_mysql_shared_library PROPERTIES
 # Setting the target includes will allow us to link to this shared
 # library via the cmake project and not require us to include all
 # its dependencies
-target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${MYSQL_INCLUDE_DIR})
+target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${LIBMYSQLCLIENT_INCLUDE_DIRS})
 target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${INCLUDE_PATHS})
 target_include_directories(libhdbpp_mysql_shared_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
 #target_include_directories(libhdbpp_mysql_shared_library PUBLIC "${PROJECT_BINARY_DIR}")
@@ -150,14 +144,14 @@ set_target_properties(libhdbpp_mysql_shared_library
 
 #add_library(libhdbpp_mysql_static_library STATIC $<TARGET_OBJECTS:object_library>)
 add_library(libhdbpp_mysql_static_library STATIC ${SRC_FILES})
-target_link_libraries(libhdbpp_mysql_static_library PUBLIC ${MYSQL_LIBS})
+target_link_libraries(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
 target_link_libraries(libhdbpp_mysql_static_library PUBLIC ${LIBS_DIR} PRIVATE TangoInterfaceLibrary)
 #target_link_libraries(libhdbpp_mysql_static_library PRIVATE hdb++)
 set_target_properties(libhdbpp_mysql_static_library PROPERTIES OUTPUT_NAME hdb++mysql)
 
 # Like the shared project, define dependencies, the static library is
 # used in the tests and requires no additional includes due to this
-target_include_directories(libhdbpp_mysql_static_library PRIVATE ${MYSQL_INCLUDE_DIR})
+target_include_directories(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIENT_INCLUDE_DIRS})
 target_include_directories(libhdbpp_mysql_static_library PRIVATE ${INCLUDE_PATHS})
 target_include_directories(libhdbpp_mysql_static_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
 #target_include_directories(libhdbpp_mysql_static_library PUBLIC "${PROJECT_BINARY_DIR}")
