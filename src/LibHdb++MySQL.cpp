@@ -46,7 +46,9 @@ static const char __FILE__rev[] = __FILE__ " $Id: $";
 
 //#define _LIB_DEBUG
 
-HdbPPMySQL::HdbPPMySQL(vector<string> configuration)
+namespace hdbpp
+{
+HdbPPMySQL::HdbPPMySQL(const string &id, const vector<string> &configuration)
 {
 	v_type.push_back(Tango::DEV_BOOLEAN);
 	v_type.push_back(Tango::DEV_UCHAR);
@@ -744,7 +746,7 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 	return 0;
 }
 
-void HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type)
+void HdbPPMySQL::insert_event(Tango::EventData *data, const HdbEventDataType &ev_data_type)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -950,6 +952,11 @@ void HdbPPMySQL::insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_ty
 #endif
 }
 
+void HdbPPMySQL::insert_events(vector<tuple<Tango::EventData *, HdbEventDataType>> events)
+{
+	//TODO!!!
+}
+
 template <typename Type> void HdbPPMySQL::extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 	vector<Type>	val_r;
@@ -989,7 +996,7 @@ template <typename Type> void HdbPPMySQL::extract_and_store(string attr_name, Ta
 	}
 }
 
-void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type)
+void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEventDataType &ev_data_type)
 {
 #ifdef _LIB_DEBUG
 //	cout << __func__<< ": entering..." << endl;
@@ -1247,11 +1254,10 @@ void HdbPPMySQL::insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataT
 #endif
 }
 
-void HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/)
+void HdbPPMySQL::add_attribute(const string &name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/)
 {
 	ostringstream insert_str;
 	ostringstream insert_event_str;
-	ostringstream update_ttl_str;
 	string facility = get_only_tango_host(name);
 #ifndef _MULTI_TANGO_HOST
 	facility = add_domain(facility);
@@ -1277,24 +1283,6 @@ void HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, .
 #ifdef _LIB_DEBUG
 		cout<< __func__ << ": ALREADY CONFIGURED with same configuration: "<<facility<<"/"<<attr_name<<" with ID="<<id << endl;
 #endif
-		if(conf_ttl != ttl)
-		{
-#ifdef _LIB_DEBUG
-			cout<< __func__ << ": .... BUT different ttl: updating " << conf_ttl << " to " << ttl << endl;
-#endif
-			update_ttl_str <<
-				"UPDATE " << m_dbname << "." << CONF_TABLE_NAME << " SET " <<
-					CONF_COL_TTL << "=" << ttl <<
-					" WHERE " << CONF_COL_ID << "=" << id;
-
-			if(mysql_query(dbp, update_ttl_str.str().c_str()))
-			{
-				stringstream tmp;
-				tmp << "ERROR in query=" << update_ttl_str.str() << ", err=" << mysql_errno(dbp) << " - " << mysql_error(dbp);
-				cout << __func__<< ": " << tmp.str() << endl;
-				Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
-			}
-		}
 		insert_event_str <<
 			"INSERT INTO " << m_dbname << "." << HISTORY_TABLE_NAME << " ("<<HISTORY_COL_ID<<","<<HISTORY_COL_EVENT_ID<<","<<HISTORY_COL_TIME<<")" <<
 				" SELECT " << id << "," << HISTORY_EVENT_COL_EVENT_ID << ",NOW(6)" <<
@@ -1311,9 +1299,9 @@ void HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, .
 	}
 
 	//add domain name to fqdn
-	name = string("tango://")+facility+string("/")+attr_name;
-	char name_escaped[2 * name.length() + 1];
-	mysql_escape_string(name_escaped, name.c_str(), name.length());
+	string name_ok = string("tango://")+facility+string("/")+attr_name;
+	char name_escaped[2 * name_ok.length() + 1];
+	mysql_escape_string(name_escaped, name_ok.c_str(), name_ok.length());
 
 	vector<string> exploded_name;
 	string_explode(attr_name,"/",&exploded_name);
@@ -1347,9 +1335,9 @@ void HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, .
 	mysql_escape_string(last_name_escaped, last_name.c_str(), last_name.length());
 
 	insert_str <<
-		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<","<<CONF_COL_TTL<<","<<
+		"INSERT INTO " << m_dbname << "." << CONF_TABLE_NAME << " ("<<CONF_COL_NAME<<","<<CONF_COL_TYPE_ID<<","<<
 			CONF_COL_FACILITY<<","<<CONF_COL_DOMAIN<<","<<CONF_COL_FAMILY<<","<<CONF_COL_MEMBER<<","<<CONF_COL_LAST_NAME<<")"<<
-			" SELECT '" << name_escaped << "'," << CONF_TYPE_COL_TYPE_ID << "," << ttl <<
+			" SELECT '" << name_escaped << "'," << CONF_TYPE_COL_TYPE_ID <<
 			",'"<<complete_facility_escaped<<"','"<<domain_escaped<<"','"<<family_escaped<<"','"<<member_escaped<<"','"<<last_name_escaped<<"'"<<
 			" FROM " << m_dbname << "." << CONF_TYPE_TABLE_NAME << " WHERE " << CONF_TYPE_COL_TYPE << " = '" << data_type << "'";
 
@@ -1377,7 +1365,7 @@ void HdbPPMySQL::configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, .
 	}
 }
 
-void HdbPPMySQL::updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*/)
+void HdbPPMySQL::update_ttl(const string &name, unsigned int ttl/*hours, 0=infinity*/)
 {
 	ostringstream update_ttl_str;
 	string facility = get_only_tango_host(name);
@@ -1410,7 +1398,7 @@ void HdbPPMySQL::updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity
 	}
 }
 
-void HdbPPMySQL::event_Attr(string name, unsigned char event)
+void HdbPPMySQL::insert_history_event(const string &name, unsigned char event)
 {
 	ostringstream insert_event_str;
 	string facility = get_only_tango_host(name);
@@ -1488,6 +1476,20 @@ void HdbPPMySQL::event_Attr(string name, unsigned char event)
 		cout << __func__<< ": " << tmp.str() << endl;
 		Tango::Except::throw_exception(DATA_ERROR,tmp.str(),__func__);
 	}
+}
+
+bool HdbPPMySQL::supported(HdbppFeatures feature)
+{
+	auto supported = false;
+
+	switch (feature)
+	{
+		case HdbppFeatures::TTL: supported = true; break;
+
+		case HdbppFeatures::BATCH_INSERTS: supported = true; break;
+	}
+
+	return supported;
 }
 
 //=============================================================================
@@ -4219,16 +4221,16 @@ bool HdbPPMySQL::autodetect_column(string table_name, string column_name)
 
 //=============================================================================
 //=============================================================================
-AbstractDB* HdbPPMySQLFactory::create_db(vector<string> configuration)
+AbstractDB* HdbPPMySQLFactory::create_db(const string &id, const vector<string> &configuration)
 {
-	return new HdbPPMySQL(configuration);
+	return new hdbpp::HdbPPMySQL(id, configuration);
 }
 
+} // namespace hdbpp
 //=============================================================================
 //=============================================================================
-DBFactory *getDBFactory()
+hdbpp::DBFactory *getDBFactory()
 {
-	HdbPPMySQLFactory *db_mysql_factory = new HdbPPMySQLFactory();
-	return static_cast<DBFactory*>(db_mysql_factory);
+	auto *db_mysql_factory = new hdbpp::HdbPPMySQLFactory();
+	return static_cast<hdbpp::DBFactory*>(db_mysql_factory);
 }
-

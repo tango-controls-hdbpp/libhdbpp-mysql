@@ -21,7 +21,7 @@
 #define _HDBPP_MYSQL_H
 
 #include <mysql.h>
-#include <libhdb++/LibHdb++.h>
+#include <hdb++/HdbClient.h>
 
 #include <string>
 #include <iostream>
@@ -147,6 +147,8 @@
 #define INF_SCHEMA_TABLE_NAME			"TABLE_NAME"
 
 
+namespace hdbpp
+{
 class HdbPPMySQL : public AbstractDB
 {
 private:
@@ -185,7 +187,7 @@ public:
 
 	~HdbPPMySQL();
 
-	HdbPPMySQL(vector<string> configuration);
+	HdbPPMySQL(const string &id,  const vector<string> &configuration);
 
 	//void connect_db(string host, string user, string password, string dbname);
 	int find_attr_id(string facility, string attr_name, int &ID);
@@ -194,11 +196,38 @@ public:
 	int find_err_id(string err, int &ERR_ID);
 	void cache_err_id(string error_desc, int &ERR_ID);
 	int insert_error(string err, int &ERR_ID);
-	virtual void insert_Attr(Tango::EventData *data, HdbEventDataType ev_data_type);
-	virtual void insert_param_Attr(Tango::AttrConfEventData *data, HdbEventDataType ev_data_type);
-	virtual void configure_Attr(string name, int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, unsigned int ttl/*hours, 0=infinity*/);
-	virtual void updateTTL_Attr(string name, unsigned int ttl/*hours, 0=infinity*/);
-	virtual void event_Attr(string name, unsigned char event);
+	// Inserts an attribute archive event for the EventData into the database. If the attribute
+	// does not exist in the database, then an exception will be raised. If the attr_value
+	// field of the data parameter if empty, then the attribute is in an error state
+	// and the error message will be archived.
+	void insert_event(Tango::EventData *event_data, const HdbEventDataType &data_type) override;
+
+	// Insert multiple attribute archive events. Any attributes that do not exist will
+	// cause an exception. On failure the fall back is to insert events individually
+	void insert_events(std::vector<std::tuple<Tango::EventData *, HdbEventDataType>> events) override;
+
+	// Inserts the attribute configuration data (Tango Attribute Configuration event data)
+	// into the database. The attribute must be configured to be stored in HDB++,
+	// otherwise an exception will be thrown.
+	void insert_param_event(Tango::AttrConfEventData *param_event, const HdbEventDataType & /* data_type */) override;
+
+	// Add an attribute to the database. Trying to add an attribute that already exists will
+	// cause an exception
+	void add_attribute(const std::string &fqdn_attr_name, int type, int format, int write_type) override;
+
+	// Update the attribute ttl. The attribute must have been configured to be stored in
+	// HDB++, otherwise an exception is raised
+	void update_ttl(const std::string &fqdn_attr_name, unsigned int ttl) override;
+
+	// Inserts a history event for the attribute name passed to the function. The attribute
+	// must have been configured to be stored in HDB++, otherwise an exception is raised.
+	// This function will also insert an additional CRASH history event before the START
+	// history event if the given event parameter is DB_START and if the last history event
+	// stored was also a START event.
+	void insert_history_event(const std::string &fqdn_attr_name, unsigned char event) override;
+
+	// Check what hdbpp features this library supports. This library supports: TTL, BATCH_INSERTS
+	bool supported(HdbppFeatures feature) override;
 
 private:
 	template <typename Type> void extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull);
@@ -215,9 +244,10 @@ class HdbPPMySQLFactory : public DBFactory
 {
 
 public:
-	virtual AbstractDB* create_db(vector<string> configuration);
+	virtual AbstractDB* create_db(const string &id, const vector<string> &configuration);
 
 };
 
+} // namespace hdbpp
 #endif
 
