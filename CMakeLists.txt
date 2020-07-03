@@ -155,7 +155,7 @@ target_include_directories(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIEN
 target_include_directories(libhdbpp_mysql_static_library PRIVATE ${INCLUDE_PATHS})
 target_include_directories(libhdbpp_mysql_static_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
 #target_include_directories(libhdbpp_mysql_static_library PUBLIC "${PROJECT_BINARY_DIR}")
-target_compile_options(libhdbpp_mysql_static_library PUBLIC -std=c++11 -DRELEASE="${VERSION_STRING}" -Wall)
+target_compile_options(libhdbpp_mysql_static_library PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
 
 
 # Install -----------------------------------------------------------
