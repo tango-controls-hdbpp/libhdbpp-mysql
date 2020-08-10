@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.1] - 2020-08-10
+
+### Added
+
+* Build using CMake.
+
+### Changed
+
+* Fixed bug in prepared statements after reconnection to the DB.
+* Updated etc/hdb++_mysql_migrate_array_json.sql
+* Updated README.md.
+
+### Removed
+
 ## [1.2.0] - 2018-04-04
 
 ### Added
