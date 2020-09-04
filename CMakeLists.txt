@@ -20,7 +20,7 @@ set(LIBHDBPP_MYSQL_NAME "libhdb++mysql")
 # Versioning
 set(VERSION_MAJOR "6")
 set(VERSION_MINOR "2")
-set(VERSION_PATCH "1")
+set(VERSION_PATCH "3")
 set(VERSION_METADATA "")
 set(VERSION_STRING ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
@@ -132,7 +132,7 @@ target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${LIBMYSQLCLIEN
 target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${INCLUDE_PATHS})
 target_include_directories(libhdbpp_mysql_shared_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
 #target_include_directories(libhdbpp_mysql_shared_library PUBLIC "${PROJECT_BINARY_DIR}")
-target_compile_options(libhdbpp_mysql_shared_library PUBLIC -std=c++11 -DRELEASE="${VERSION_STRING}" -Wall)
+target_compile_options(libhdbpp_mysql_shared_library PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
 
 # This will version the shared library
 set_target_properties(libhdbpp_mysql_shared_library
@@ -155,7 +155,7 @@ target_include_directories(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIEN
 target_include_directories(libhdbpp_mysql_static_library PRIVATE ${INCLUDE_PATHS})
 target_include_directories(libhdbpp_mysql_static_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
 #target_include_directories(libhdbpp_mysql_static_library PUBLIC "${PROJECT_BINARY_DIR}")
-target_compile_options(libhdbpp_mysql_static_library PUBLIC -std=c++11 -DRELEASE="${VERSION_STRING}" -Wall)
+target_compile_options(libhdbpp_mysql_static_library PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
 
 
 # Install -----------------------------------------------------------
