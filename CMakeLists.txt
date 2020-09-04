@@ -83,7 +83,7 @@ endforeach()
 
 # Variable to contain a list of all the libs we depend on
 set(HDBPP_MSQL_LIBRARIES
-   libhdb++.so
+#   libhdb++.so
    )
 
 # Now load the libraries and check each is found, if not
