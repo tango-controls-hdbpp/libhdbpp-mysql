@@ -21,7 +21,7 @@
 #define _HDBPP_MYSQL_H
 
 #include <mysql.h>
-#include <hdb++/HdbClient.h>
+#include <hdb++/AbstractDB.h>
 
 #include <string>
 #include <iostream>

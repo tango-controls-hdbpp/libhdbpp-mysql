@@ -68,6 +68,28 @@ find_package(Tango)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+# Find the libhdbpp headers
+find_package(libhdbpp)
+
+# If not installed then get them
+if(NOT libhdbpp_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+      libhdbpp
+      GIT_REPOSITORY https://github.com/tango-controls-hdbpp/libhdbpp.git
+      GIT_TAG        project-build
+    )
+
+    FetchContent_GetProperties(libhdbpp)
+    if(NOT libhdbpp_POPULATED)
+        FetchContent_Populate(libhdbpp)
+        add_subdirectory(${libhdbpp_SOURCE_DIR} ${libhdbpp_BINARY_DIR})
+    endif()
+
+    add_library(libhdbpp::libhdbpp_headers ALIAS libhdbpp_headers)
+
+endif(NOT libhdbpp_FOUND)
+
 # Add any include paths from the command line
 set(INCLUDE_PATHS ${INCLUDE_PATHS} ${CMAKE_INCLUDE_PATH})
 
@@ -82,9 +104,9 @@ foreach(LIB_PATH ${CMAKE_LIBRARY_PATH})
 endforeach()
 
 # Variable to contain a list of all the libs we depend on
-set(HDBPP_MSQL_LIBRARIES
+#set(HDBPP_MSQL_LIBRARIES
 #   libhdb++.so
-   )
+#   )
 
 # Now load the libraries and check each is found, if not
 # this is an error condition, so halt the cmake config
@@ -118,7 +140,7 @@ add_subdirectory(src)
 add_library(libhdbpp_mysql_shared_library SHARED ${SRC_FILES})
 
 target_link_libraries(libhdbpp_mysql_shared_library PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
-target_link_libraries(libhdbpp_mysql_shared_library PUBLIC ${LIBS_DIR} PRIVATE TangoInterfaceLibrary)
+target_link_libraries(libhdbpp_mysql_shared_library PUBLIC libhdbpp::libhdbpp_headers PRIVATE TangoInterfaceLibrary)
 #target_link_libraries(libhdbpp_mysql_shared_library PRIVATE hdb++)
 
 set_target_properties(libhdbpp_mysql_shared_library PROPERTIES 
@@ -145,7 +167,7 @@ set_target_properties(libhdbpp_mysql_shared_library
 #add_library(libhdbpp_mysql_static_library STATIC $<TARGET_OBJECTS:object_library>)
 add_library(libhdbpp_mysql_static_library STATIC ${SRC_FILES})
 target_link_libraries(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
-target_link_libraries(libhdbpp_mysql_static_library PUBLIC ${LIBS_DIR} PRIVATE TangoInterfaceLibrary)
+target_link_libraries(libhdbpp_mysql_static_library PUBLIC libhdbpp::libhdbpp_headers PRIVATE TangoInterfaceLibrary)
 #target_link_libraries(libhdbpp_mysql_static_library PRIVATE hdb++)
 set_target_properties(libhdbpp_mysql_static_library PROPERTIES OUTPUT_NAME hdb++mysql)
 
@@ -159,10 +181,21 @@ target_compile_options(libhdbpp_mysql_static_library PUBLIC -DRELEASE="${VERSION
 
 
 # Install -----------------------------------------------------------
+include(CMakePackageConfigHelpers)
 
 install(TARGETS libhdbpp_mysql_shared_library
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         NAMELINK_SKIP)
+
+set(ConfigPackageLocation lib/cmake/libhdbpp-mysql)
+set(Namespace libhdbpp::)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/libhdbpp-mysql/libhdbpp-mysqlConfigVersion.cmake"
+  VERSION ${VERSION_STRING}
+  COMPATIBILITY AnyNewerVersion
+)
+
 
 
 install(TARGETS libhdbpp_mysql_static_library ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
