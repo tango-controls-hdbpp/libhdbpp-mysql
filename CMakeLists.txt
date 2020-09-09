@@ -133,57 +133,61 @@ add_subdirectory(src)
 
 # Build Targets  -----------------------------------
 
+# Export target name for subdirectory build
+get_directory_property(hasParent PARENT_DIRECTORY)
+if(hasParent)
+    set(BACKEND_TARGET_SHARED "libhdbpp_mysql_shared_library" PARENT_SCOPE)
+    set(BACKEND_TARGET_STATIC "libhdbpp_mysql_static_library" PARENT_SCOPE)
+else()
+    set(BACKEND_TARGET_SHARED "libhdbpp_mysql_shared_library")
+    set(BACKEND_TARGET_STATIC "libhdbpp_mysql_static_library")
+endif(hasParent)
 
 # Shared library ------------------------------------------------------
 
-#add_library(shared_library SHARED $<TARGET_OBJECTS:object_library>)
-add_library(libhdbpp_mysql_shared_library SHARED ${SRC_FILES})
+add_library(${BACKEND_TARGET_SHARED} SHARED ${SRC_FILES})
 
-target_link_libraries(libhdbpp_mysql_shared_library PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
-target_link_libraries(libhdbpp_mysql_shared_library PUBLIC libhdbpp::libhdbpp_headers PRIVATE TangoInterfaceLibrary)
-#target_link_libraries(libhdbpp_mysql_shared_library PRIVATE hdb++)
+target_link_libraries(${BACKEND_TARGET_SHARED} PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
+target_link_libraries(${BACKEND_TARGET_SHARED} PUBLIC libhdbpp::libhdbpp_headers PRIVATE TangoInterfaceLibrary)
 
-set_target_properties(libhdbpp_mysql_shared_library PROPERTIES 
+set_target_properties(${BACKEND_TARGET_SHARED} PROPERTIES 
         OUTPUT_NAME hdb++mysql
         LINK_FLAGS "-Wl,--no-undefined")
 
 # Setting the target includes will allow us to link to this shared
 # library via the cmake project and not require us to include all
 # its dependencies
-target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${LIBMYSQLCLIENT_INCLUDE_DIRS})
-target_include_directories(libhdbpp_mysql_shared_library PRIVATE ${INCLUDE_PATHS})
-target_include_directories(libhdbpp_mysql_shared_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
-#target_include_directories(libhdbpp_mysql_shared_library PUBLIC "${PROJECT_BINARY_DIR}")
-target_compile_options(libhdbpp_mysql_shared_library PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
+target_include_directories(${BACKEND_TARGET_SHARED} PRIVATE ${LIBMYSQLCLIENT_INCLUDE_DIRS})
+target_include_directories(${BACKEND_TARGET_SHARED} PRIVATE ${INCLUDE_PATHS})
+target_include_directories(${BACKEND_TARGET_SHARED} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
+#target_include_directories(${BACKEND_TARGET_SHARED} PUBLIC "${PROJECT_BINARY_DIR}")
+target_compile_options(${BACKEND_TARGET_SHARED} PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
 
 # This will version the shared library
-set_target_properties(libhdbpp_mysql_shared_library
+set_target_properties(${BACKEND_TARGET_SHARED}
     PROPERTIES VERSION ${VERSION_STRING}
     SOVERSION ${VERSION_MAJOR})
 
 
 # Static library ------------------------------------------------------
 
-#add_library(libhdbpp_mysql_static_library STATIC $<TARGET_OBJECTS:object_library>)
-add_library(libhdbpp_mysql_static_library STATIC ${SRC_FILES})
-target_link_libraries(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
-target_link_libraries(libhdbpp_mysql_static_library PUBLIC libhdbpp::libhdbpp_headers PRIVATE TangoInterfaceLibrary)
-#target_link_libraries(libhdbpp_mysql_static_library PRIVATE hdb++)
-set_target_properties(libhdbpp_mysql_static_library PROPERTIES OUTPUT_NAME hdb++mysql)
+add_library(${BACKEND_TARGET_STATIC} STATIC ${SRC_FILES})
+target_link_libraries(${BACKEND_TARGET_STATIC} PRIVATE ${LIBMYSQLCLIENT_LIBRARIES})
+target_link_libraries(${BACKEND_TARGET_STATIC} PUBLIC libhdbpp::libhdbpp_headers PRIVATE TangoInterfaceLibrary)
+set_target_properties(${BACKEND_TARGET_STATIC} PROPERTIES OUTPUT_NAME hdb++mysql)
 
 # Like the shared project, define dependencies, the static library is
 # used in the tests and requires no additional includes due to this
-target_include_directories(libhdbpp_mysql_static_library PRIVATE ${LIBMYSQLCLIENT_INCLUDE_DIRS})
-target_include_directories(libhdbpp_mysql_static_library PRIVATE ${INCLUDE_PATHS})
-target_include_directories(libhdbpp_mysql_static_library PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
-#target_include_directories(libhdbpp_mysql_static_library PUBLIC "${PROJECT_BINARY_DIR}")
-target_compile_options(libhdbpp_mysql_static_library PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
+target_include_directories(${BACKEND_TARGET_STATIC} PRIVATE ${LIBMYSQLCLIENT_INCLUDE_DIRS})
+target_include_directories(${BACKEND_TARGET_STATIC} PRIVATE ${INCLUDE_PATHS})
+target_include_directories(${BACKEND_TARGET_STATIC} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
+target_compile_options(${BACKEND_TARGET_STATIC} PUBLIC -DRELEASE="${VERSION_STRING}" -Wall)
 
 
 # Install -----------------------------------------------------------
 include(CMakePackageConfigHelpers)
 
-install(TARGETS libhdbpp_mysql_shared_library
+install(TARGETS ${BACKEND_TARGET_SHARED}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         NAMELINK_SKIP)
 
@@ -198,7 +202,7 @@ write_basic_package_version_file(
 
 
 
-install(TARGETS libhdbpp_mysql_static_library ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS ${BACKEND_TARGET_STATIC} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(FILES etc/create_hdb++_mysql.sql DESTINATION ${CMAKE_INSTALL_DATADIR}/libhdb++mysql)
 install(FILES etc/create_hdb++_mysql_innodb.sql DESTINATION ${CMAKE_INSTALL_DATADIR}/libhdb++mysql)
