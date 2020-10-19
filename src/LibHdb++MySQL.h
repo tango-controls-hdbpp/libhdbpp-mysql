@@ -146,9 +146,38 @@
 #define INF_SCHEMA_TABLE_SCHEMA			"TABLE_SCHEMA"
 #define INF_SCHEMA_TABLE_NAME			"TABLE_NAME"
 
+#define DEFAULT_BATCH_SIZE						1000 //TODO: configurable
+#define MAX_PREPARED_STATEMENT_COUNT	16382 //to be less or equal to max-prepared-stmt-count configured on MySQL
+
 
 namespace hdbpp
 {
+struct event_param
+{
+	string attr_name;
+	int quality;/*ATTR_VALID, ATTR_INVALID, ..*/
+	string error_desc;
+	Tango::AttributeDimension attr_r_dim;
+	Tango::AttributeDimension attr_w_dim;
+	double ev_time;
+	double rcv_time;
+	bool isNull=false;
+};
+
+struct event_data_param
+{
+	Tango::EventData * data;
+	event_param param;
+};
+
+template <typename T>
+struct event_values_param
+{
+	vector<T> val_r;
+	vector<T> val_w;
+	event_param param;
+};
+
 class HdbPPMySQL : public AbstractDB
 {
 private:
@@ -156,19 +185,20 @@ private:
 	MYSQL *dbp;
 	unsigned long db_mti;
 	string m_dbname;
-	map<string,int> attr_ID_map;
+	unordered_map<string,int> attr_ID_map;
 	bool lightschema;	//without recv_time and insert_time
 	bool jsonarray;
 	bool autodetectschema;
 	bool ignoreduplicates;	//ignore duplicated key (att_conf_id,data_time) insert failures
-	map<string,int> attr_ERR_ID_map;
+	uint32_t batch_size{DEFAULT_BATCH_SIZE};
+	unordered_map<string,int> attr_ERR_ID_map;
 	queue<string> attr_ERR_queue;
-	map<string,MYSQL_STMT *> pstmt_map;
+	unordered_map<string,MYSQL_STMT *> pstmt_map;
 	
 	vector<Tango::CmdArgType> v_type;/*DEV_DOUBLE, DEV_STRING, ..*/
 	vector<Tango::AttrDataFormat> v_format;/*SCALAR, SPECTRUM, ..*/
 	vector<Tango::AttrWriteType> v_write_type;/*READ, READ_WRITE, ..*/
-	map<string,bool > table_column_map;
+	unordered_map<string,bool > table_column_map;
 
 	string get_only_attr_name(string str);
 	string get_only_tango_host(string str);
@@ -177,11 +207,13 @@ private:
 	string add_domain(string facility);
 #endif
 	void string_explode(string str, string separator, vector<string>* results);
-	void string_vector2map(vector<string> str, string separator, map<string,string>* results);
+	void string_vector2map(const vector<string> &str, const string &separator, unordered_map<string,string> &results);
 
 	string get_data_type(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	string get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	bool autodetect_column(string table_name, string column_name);
+	int cache_ID(const string &attr_name, const string &func_name);
+	bool cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t stmt_size, const string &func_name);
 
 public:
 
@@ -230,13 +262,14 @@ public:
 	bool supported(HdbppFeatures feature) override;
 
 private:
-	template <typename Type> void extract_and_store(string attr_name, Tango::EventData *data, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull);
-	template <typename Type> void store_scalar(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool is_unsigned, bool isNull=false);
-	template <typename Type> void store_array(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull=false);
-	template <typename Type> void store_array_json(string attr, vector<Type> value_r, vector<Type> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, enum_field_types mysql_value_type, bool isNull=false);
-	void store_scalar_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, double ev_time, double rcv_time, string table_name, bool isNull=false);
-	void store_array_string(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
-	void store_array_string_json(string attr, vector<string> value_r, vector<string> value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, string error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, string table_name, bool isNull=false);
+	void prepare_insert_event(vector<Tango::EventData *> data, const HdbEventDataType &ev_data_type);
+	template <typename Type> void extract_and_store(const vector<event_data_param> &event_data, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, enum_field_types mysql_value_type, bool _is_unsigned);
+	//template <string> void extract_and_store(const vector<event_data_param> &event_data, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, Tango::AttrDataFormat data_format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/, const string &table_name, enum_field_types mysql_value_type, bool _is_unsigned);
+	template <typename Type> void store_scalar(const vector<event_values_param<Type> > &event_values, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, const string & table_name, enum_field_types mysql_value_type, bool _is_unsigned);
+	template <typename Type> void store_array(const string &attr, const vector<Type> &value_r, const vector<Type> &value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, const string &error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, const string &table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull);
+	template <typename Type> void store_arrays(const vector<event_values_param<Type> > &event_values, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, const string & table_name, enum_field_types mysql_value_type, bool _is_unsigned);
+	template <typename Type> void store_array_json(const vector<event_values_param<Type> > &event_values, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, const string & table_name, enum_field_types mysql_value_type, bool _is_unsigned);
+
 	template <typename Type> bool is_nan_or_inf(Type val);
 };
 
