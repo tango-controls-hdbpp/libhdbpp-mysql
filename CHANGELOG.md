@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+* Support for batch insertion methods (but implemented as fallback to single statement multiple insertions).
+
+### Changed
+
+* Modified build system to use fetch libhdbpp and include it when requested.
+* Made compatible with new libhdbpp (namespace, function and path changes)
+
 ## [1.2.1] - 2020-08-10
 
 ### Added
@@ -18,8 +27,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * Fixed bug in prepared statements after reconnection to the DB.
 * Updated etc/hdb++_mysql_migrate_array_json.sql
 * Updated README.md.
-
-### Removed
 
 ## [1.2.0] - 2018-04-04
 
@@ -33,8 +40,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * LibHdb++MySQL.cpp: added json_array configuration key to store array elements in a JSON field of a single row
 * Updated README.md.
 
-### Removed
-
 ## [1.1.0] - 2018-03-02
 
 ### Added
@@ -45,9 +50,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 * LibHdb++MySQL.*: added ignore_duplicates configuration key to ignore duplicated key (att_conf_id,data_time) when inserting data in InnoDB schema
 * Updated README.md.
-
-### Removed
-
 
 ## [1.0.0] - 2017-09-28
 
