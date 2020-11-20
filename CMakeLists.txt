@@ -103,11 +103,6 @@ foreach(LIB_PATH ${CMAKE_LIBRARY_PATH})
    message(STATUS "Extra library search path: " ${LIB_PATH})
 endforeach()
 
-# Variable to contain a list of all the libs we depend on
-#set(HDBPP_MSQL_LIBRARIES
-#   libhdb++.so
-#   )
-
 # Now load the libraries and check each is found, if not
 # this is an error condition, so halt the cmake config
 foreach(LIB ${HDBPP_MSQL_LIBRARIES})
