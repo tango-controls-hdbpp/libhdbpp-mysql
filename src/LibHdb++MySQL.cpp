@@ -230,7 +230,7 @@ HdbPPMySQL::HdbPPMySQL(const string &id, const vector<string> &configuration)
 	catch(const std::out_of_range& e)
 	{
 //#ifdef _LIB_DEBUG
-		cout << __func__<< ": batch_size key not found" << endl;
+		cout << __func__<< ": batch_size key not found, using " << batch_size << endl;
 //#endif
 	}
 	if(!mysql_real_connect(dbp, host.c_str(), user.c_str(), password.c_str(), dbname.c_str(), port, NULL, 0))
