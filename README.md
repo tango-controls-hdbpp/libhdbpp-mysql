@@ -169,6 +169,7 @@ Configuration parameters are as follows:
 | lightschema | false | 0 | When set to 1 (true) insert_time and rcv_time are not stored. When set to 0 (false) presence of insert_time, rcv_time, quality, error_desc_id columns are auto-detected at library startup per table |
 | ignore_duplicates | false | 0 | Schema optimized for InnoDB has the primary key on (att_conf_id,data_time), set this property to 1 to not have duplicates on (att_conf_id,data_time) signalled as storing errors. |
 | json_array | false | 0 | When set to 1 use a JSON array to store Spectrum/Image data types instead of one row per array element. |
+| batch_size | false | 1000 | Specify maximum batch size for insertion. |
 
 
 ### Configuration Example
@@ -183,6 +184,7 @@ dbname=hdbpp
 port=3306
 ignore_duplicates=1
 json_array=1
+batch_size=10000
 libname=libhdb++mysql.so
 ```` 
 
