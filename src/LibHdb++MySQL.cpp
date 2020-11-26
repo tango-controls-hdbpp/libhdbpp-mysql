@@ -819,6 +819,7 @@ void HdbPPMySQL::insert_events(vector<tuple<Tango::EventData *, HdbEventDataType
 #ifdef _LIB_DEBUG
 	//cout << __func__<< ": entering..." << endl;
 #endif
+	mysql_autocommit(dbp, 0);
 	unordered_map<HdbEventDataType, vector<Tango::EventData *>, dt_hashing_func, dt_equal_func > data;
 	try
 	{
@@ -833,8 +834,12 @@ void HdbPPMySQL::insert_events(vector<tuple<Tango::EventData *, HdbEventDataType
 	}
 	catch (Tango::DevFailed &e)
 	{
+		mysql_rollback(dbp);
+		mysql_autocommit(dbp, 1);
 		throw;
 	}
+	mysql_autocommit(dbp, 1);
+	mysql_commit(dbp); //TODO: NEEDED?
 #ifdef _LIB_DEBUG
 	//cout << __func__<< ": exiting... "<< endl;
 #endif
