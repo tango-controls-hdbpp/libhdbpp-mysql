@@ -1140,7 +1140,7 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 			"?,?,?," <<
 			"?,?,?," <<
 			"?,?,?)" ;
-	uint32_t retry_cnt=0;
+	unsigned int retry_cnt=0;
 	do
 	{
 		retry_cnt++;
@@ -1515,9 +1515,9 @@ bool HdbPPMySQL::supported(HdbppFeatures feature)
 //=============================================================================
 template <typename Type> void HdbPPMySQL::store_scalar(const vector<event_values_param<Type> > &event_values, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, const string & table_name, enum_field_types mysql_value_type, bool _is_unsigned)
 {
-	uint32_t max_size = event_values.size();
-	uint32_t insert_size = (max_size <= batch_size) ? max_size : batch_size;
-	uint32_t inserted_num = 0;
+	unsigned int max_size = event_values.size();
+	unsigned int insert_size = std::min(max_size, batch_size);
+	unsigned int inserted_num = 0;
 #ifdef _LIB_DEBUG
 	cout << __func__<< ": entering with mysql_thread_id="<<mysql_thread_id(dbp) << " data size=" << max_size << " batch size=" << insert_size << " table_name="<< table_name<< endl;
 #endif
@@ -1615,7 +1615,7 @@ template <typename Type> void HdbPPMySQL::store_scalar(const vector<event_values
 		if(write_type != Tango::READ)
 			param_count_single ++;
 		int param_count = param_count_single*insert_size;
-		uint32_t retry_cnt=0;
+		unsigned int retry_cnt=0;
 		do
 		{
 			retry_cnt++;
@@ -1776,7 +1776,7 @@ template <typename Type> void HdbPPMySQL::store_scalar(const vector<event_values
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 
 		inserted_num += insert_size;
-		insert_size = ((max_size-inserted_num) <= batch_size) ? (max_size-inserted_num) : batch_size;
+		insert_size = std::min(max_size-inserted_num, batch_size);
 	
 	} while(insert_size > 0);
 }
@@ -1791,16 +1791,16 @@ template <typename Type> void HdbPPMySQL::store_arrays(const vector<event_values
 	}
 }
 
-#define MAX_INSERT_SIZE		5000
+constexpr unsigned int MAX_INSERT_SIZE = 5000;
 template <typename Type> void HdbPPMySQL::store_array(const string &attr, const vector<Type> &value_r, const vector<Type> &value_w, int quality/*ATTR_VALID, ATTR_INVALID, ..*/, const string &error_desc, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, Tango::AttributeDimension attr_r_dim, Tango::AttributeDimension attr_w_dim, double ev_time, double rcv_time, const string &table_name, enum_field_types mysql_value_type, bool _is_unsigned, bool isNull)
 {
 #ifdef _LIB_DEBUG
 	cout << __func__<< ": entering..." << endl;
 #endif
 	int ID=cache_ID(attr, __func__);
-	uint32_t max_size = (value_r.size() > value_w.size()) ? value_r.size() : value_w.size();
-	uint32_t insert_size = (max_size <= MAX_INSERT_SIZE) ? max_size : MAX_INSERT_SIZE;
-	uint32_t inserted_num = 0;
+	unsigned int max_size = std::max(value_r.size(),value_w.size());
+	unsigned int insert_size = std::min(max_size,MAX_INSERT_SIZE);
+	unsigned int inserted_num = 0;
 
 	bool detected_insert_time = true;
 	bool detected_recv_time = true;
@@ -1911,7 +1911,7 @@ template <typename Type> void HdbPPMySQL::store_array(const string &attr, const 
 		if(write_type != Tango::READ)
 			param_count_single += 3;
 		int param_count = param_count_single*insert_size;								//total param
-		uint32_t retry_cnt=0;
+		unsigned int retry_cnt=0;
 		do
 		{
 			retry_cnt++;
@@ -2224,7 +2224,7 @@ template <typename Type> void HdbPPMySQL::store_array(const string &attr, const 
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 		
 		inserted_num += insert_size;
-		insert_size = ((max_size-inserted_num) <= MAX_INSERT_SIZE) ? (max_size-inserted_num) : MAX_INSERT_SIZE;
+		insert_size = std::min(max_size-inserted_num,MAX_INSERT_SIZE);
 	
 	} while(insert_size > 0);
 }
@@ -2233,9 +2233,9 @@ template <typename Type> void HdbPPMySQL::store_array(const string &attr, const 
 //=============================================================================
 template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_values_param<Type> > &event_values, int data_type/*DEV_DOUBLE, DEV_STRING, ..*/, int write_type/*READ, READ_WRITE, ..*/, const string & table_name, enum_field_types mysql_value_type, bool is_unsigned)
 {
-	uint32_t max_size = event_values.size();
-	uint32_t insert_size = (max_size <= batch_size) ? max_size : batch_size;
-	uint32_t inserted_num = 0;
+	unsigned int max_size = event_values.size();
+	unsigned int insert_size = std::min(max_size,batch_size);
+	unsigned int inserted_num = 0;
 #ifdef _LIB_DEBUG
 	cout << __func__<< ": entering... data_size="<<max_size << " batch size="<< insert_size << " table_name=" << table_name << endl;
 #endif
@@ -2334,7 +2334,7 @@ template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_va
 		if(write_type != Tango::READ)
 			param_count_single += 3;
 		int param_count = param_count_single*insert_size;				//total param
-		uint32_t retry_cnt=0;
+		unsigned int retry_cnt=0;
 		do
 		{
 			retry_cnt++;
@@ -2352,7 +2352,7 @@ template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_va
 
 			for(size_t chunk_idx=0; chunk_idx < insert_size && it_loop != end_ev; ++chunk_idx)	
 			{
-				uint32_t max_array_size = (it_loop->val_r.size() > it_loop->val_w.size()) ? it_loop->val_r.size() : it_loop->val_w.size();
+				unsigned int max_array_size = std::max(it_loop->val_r.size(),it_loop->val_w.size());
 				ostringstream ss_value_r,ss_value_w;
 				for(size_t idx=0; idx < max_array_size; idx++)
 				{
@@ -2562,7 +2562,7 @@ template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_va
 /*		if (paffected_rows != 1)
 			DEBUG_STREAM << "log_srvc: invalid affected rows " << endl;*/
 		inserted_num += insert_size;
-		insert_size = ((max_size-inserted_num) <= batch_size) ? (max_size-inserted_num) : batch_size;
+		insert_size = std::min(max_size-inserted_num,batch_size);
 	} while(insert_size > 0);
 }
 
@@ -2959,7 +2959,7 @@ int HdbPPMySQL::cache_ID(const string &attr, const string &func_name)
 	return it->second;
 }
 
-bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t stmt_size/*TODO: handle max-prepared-stmt-count*/, const string &func_name)
+bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, unsigned int stmt_size/*TODO: handle max-prepared-stmt-count*/, const string &func_name)
 {
 	//pstmt = nullptr;
 	unsigned long mti = mysql_thread_id(dbp);

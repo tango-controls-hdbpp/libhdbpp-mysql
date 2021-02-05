@@ -190,7 +190,7 @@ private:
 	bool jsonarray;
 	bool autodetectschema;
 	bool ignoreduplicates;	//ignore duplicated key (att_conf_id,data_time) insert failures
-	uint32_t batch_size{DEFAULT_BATCH_SIZE};
+	unsigned int batch_size{DEFAULT_BATCH_SIZE};
 	unordered_map<string,int> attr_ERR_ID_map;
 	queue<string> attr_ERR_queue;
 	unordered_map<string,MYSQL_STMT *> pstmt_map;
@@ -213,7 +213,7 @@ private:
 	string get_table_name(int type/*DEV_DOUBLE, DEV_STRING, ..*/, int format/*SCALAR, SPECTRUM, ..*/, int write_type/*READ, READ_WRITE, ..*/);
 	bool autodetect_column(string table_name, string column_name);
 	int cache_ID(const string &attr_name, const string &func_name);
-	bool cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t stmt_size, const string &func_name);
+	bool cache_pstmt(const string &query, MYSQL_STMT **pstmt, unsigned int stmt_size, const string &func_name);
 	void stmt_close(bool cached, const string &func, MYSQL_STMT	*pstmt);
 	string err_stmt_close(bool cached, const string &func, const string &query, MYSQL_STMT *pstmt);
 public:
