@@ -27,7 +27,7 @@ Library for HDB++ implementing MySQL schema
 
 ## Version
 
-The current release version is 1.2.1
+The current release version is 7.0.0
 
 ## Documentation
 

@@ -5,16 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.0.0]
 
 ### Added
 
-* Support for batch insertion methods (but implemented as fallback to single statement multiple insertions).
+* Support for batch insertion.
 
 ### Changed
 
 * Modified build system to use fetch libhdbpp and include it when requested.
 * Made compatible with new libhdbpp (namespace, function and path changes)
+* Code refactoring
+* Align release with library version
 
 ## [1.2.1] - 2020-08-10
 
