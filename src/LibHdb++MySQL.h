@@ -214,7 +214,8 @@ private:
 	bool autodetect_column(string table_name, string column_name);
 	int cache_ID(const string &attr_name, const string &func_name);
 	bool cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t stmt_size, const string &func_name);
-
+	void stmt_close(bool cached, const string &func, MYSQL_STMT	*pstmt);
+	string err_stmt_close(bool cached, const string &func, const string &query, MYSQL_STMT *pstmt);
 public:
 
 	~HdbPPMySQL();

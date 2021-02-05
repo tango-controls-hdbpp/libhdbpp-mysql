@@ -301,7 +301,7 @@ HdbPPMySQL::~HdbPPMySQL()
 		if (mysql_stmt_close(it_pstmt->second))
 		{
 			stringstream tmp;
-			tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(it_pstmt->second);
+			tmp << "failed while closing the statement" << ", err=" << mysql_error(dbp);
 			cout << __func__<< ": " << tmp.str() << endl;
 			//Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 		}
@@ -727,30 +727,11 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 
 	if (mysql_stmt_execute(pstmt))
 	{
-		stringstream tmp;
-		tmp << "ERROR in query=" << query_str.str() << ", err=" << mysql_stmt_error(pstmt);
-		cout << __func__<< ": " << tmp.str() << endl;
-		if(!cached)
-		{
-			if(mysql_stmt_close(pstmt))
-			{
-				stringstream tmp;
-				tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-				cout << __func__<< ": " << tmp.str() << endl;
-			}
-		}
+		err_stmt_close(cached, __func__, query_str.str(), pstmt);
 	}
 	else
 	{
-		if(!cached)
-		{
-			if(mysql_stmt_close(pstmt))
-			{
-				stringstream tmp;
-				tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-				cout << __func__<< ": " << tmp.str() << endl;
-			}
-		}
+		stmt_close(cached, __func__, pstmt);
 #ifdef _LIB_DEBUG
 		cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
 #endif
@@ -1263,19 +1244,8 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 		}
 		if (mysql_stmt_execute(pstmt))
 		{
-			stringstream tmp;
 			unsigned int mse = mysql_stmt_errno(pstmt);
-			tmp << "ERROR in query=" << query_str.str() << ", err=" << mse << " - " << mysql_stmt_error(pstmt);
-			cout<< __func__ << ": " << tmp.str() << endl;
-			if(!cached)
-			{
-				if(mysql_stmt_close(pstmt))
-				{
-					stringstream tmp;
-					tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-					cout << __func__<< ": " << tmp.str() << endl;
-				}
-			}
+			string error = err_stmt_close(cached, __func__, query_str.str(), pstmt);
 			if((mse == CR_SERVER_LOST || mse == CR_SERVER_GONE_ERROR) && mysql_ping(dbp) == 0 && retry_cnt < RETRY_QUERY_CNT)	//reconnected
 			{
 				cout<< __func__ << ": mysql_ping OK, retrying" << endl;
@@ -1283,20 +1253,12 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 			}
 			else if(retry_cnt == RETRY_QUERY_CNT)
 			{
-				Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+				Tango::Except::throw_exception(QUERY_ERROR,error,__func__);
 			}
 		}
 		else
 		{
-			if(!cached)
-			{
-				if(mysql_stmt_close(pstmt))
-				{
-					stringstream tmp;
-					tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-					cout << __func__<< ": " << tmp.str() << endl;
-				}
-			}
+			stmt_close(cached, __func__, pstmt);
 #ifdef _LIB_DEBUG
 			//cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
 #endif
@@ -1783,33 +1745,14 @@ template <typename Type> void HdbPPMySQL::store_scalar(const vector<event_values
 				stringstream tmp;
 				tmp << "mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt);
 				cout << __func__<< ": " << tmp.str() << endl;
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				stmt_close(cached, __func__, pstmt);
 				Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 			}
 
 			if (mysql_stmt_execute(pstmt))
 			{
-				stringstream tmp;
 				unsigned int mse = mysql_stmt_errno(pstmt);
-				tmp << "ERROR in query=" << query_str.str() << ", err=" << mse << " - " << mysql_stmt_error(pstmt);
-				cout<< __func__ << ": " << tmp.str() << endl;
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				string error = err_stmt_close(cached, __func__, query_str.str(), pstmt);
 				if((mse == CR_SERVER_LOST || mse == CR_SERVER_GONE_ERROR) && mysql_ping(dbp) == 0 && retry_cnt < RETRY_QUERY_CNT)	//reconnected
 				{
 					cout<< __func__ << ": mysql_ping OK, retrying" << endl;
@@ -1817,7 +1760,7 @@ template <typename Type> void HdbPPMySQL::store_scalar(const vector<event_values
 				}
 				else if(retry_cnt == RETRY_QUERY_CNT)
 				{
-					Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+					Tango::Except::throw_exception(QUERY_ERROR,error,__func__);
 				}
 			}
 			else
@@ -1825,15 +1768,7 @@ template <typename Type> void HdbPPMySQL::store_scalar(const vector<event_values
 #ifdef _LIB_DEBUG
 				cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
 #endif
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				stmt_close(cached, __func__, pstmt);
 				break;
 			}
 		} while(retry_cnt < RETRY_QUERY_CNT);
@@ -2256,33 +2191,14 @@ template <typename Type> void HdbPPMySQL::store_array(const string &attr, const 
 				stringstream tmp;
 				tmp << "mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt);
 				cout << __func__<< ": " << tmp.str() << endl;
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				stmt_close(cached, __func__, pstmt);
 				Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 			}
 
 			if (mysql_stmt_execute(pstmt))
 			{
-				stringstream tmp;
 				unsigned int mse = mysql_stmt_errno(pstmt);
-				tmp << "ERROR in query=" << query_str.str() <<  ", err=" << mse << " - " << mysql_stmt_error(pstmt);
-				cout << __func__<< ": " << tmp.str() << endl;
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				string error = err_stmt_close(cached, __func__, query_str.str(), pstmt);
 				delete [] plog_bind;
 				if((mse == CR_SERVER_LOST || mse == CR_SERVER_GONE_ERROR) && mysql_ping(dbp) == 0 && retry_cnt < RETRY_QUERY_CNT)	//reconnected
 				{
@@ -2291,20 +2207,12 @@ template <typename Type> void HdbPPMySQL::store_array(const string &attr, const 
 				}
 				else if(retry_cnt == RETRY_QUERY_CNT)
 				{
-					Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+					Tango::Except::throw_exception(QUERY_ERROR,error,__func__);
 				}
 			}
 			else
 			{
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				stmt_close(cached, __func__, pstmt);
 #ifdef _LIB_DEBUG
 				cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
 #endif
@@ -2623,33 +2531,14 @@ template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_va
 				stringstream tmp;
 				tmp << "mysql_stmt_bind_param() failed" << ", err=" << mysql_stmt_error(pstmt);
 				cout << __func__<< ": " << tmp.str() << endl;
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				stmt_close(cached, __func__, pstmt);
 				Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
 			}
 
 			if (mysql_stmt_execute(pstmt))
 			{
-				stringstream tmp;
 				unsigned int mse = mysql_stmt_errno(pstmt);
-				tmp << "ERROR in query=" << query_str.str() <<  ", err=" << mse << " - " << mysql_stmt_error(pstmt);
-				cout << __func__<< ": " << tmp.str() << endl;
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				string error = err_stmt_close(cached, __func__, query_str.str(), pstmt);
 				if((mse == CR_SERVER_LOST || mse == CR_SERVER_GONE_ERROR) && mysql_ping(dbp) == 0 && retry_cnt < RETRY_QUERY_CNT)	//reconnected
 				{
 					cout<< __func__ << ": mysql_ping OK, retrying" << endl;
@@ -2657,7 +2546,7 @@ template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_va
 				}
 				else if(retry_cnt == RETRY_QUERY_CNT)
 				{
-					Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),__func__);
+					Tango::Except::throw_exception(QUERY_ERROR,error,__func__);
 				}
 			}
 			else
@@ -2665,15 +2554,7 @@ template <typename Type> void HdbPPMySQL::store_array_json(const vector<event_va
 #ifdef _LIB_DEBUG
 				cout << __func__<< ": SUCCESS in query: " << query_str.str() << endl;
 #endif
-				if(!cached)
-				{
-					if(mysql_stmt_close(pstmt))
-					{
-						stringstream tmp;
-						tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(pstmt);
-						cout << __func__<< ": " << tmp.str() << endl;
-					}
-				}
+				stmt_close(cached, __func__, pstmt);
 				break;
 			}
 		} while(retry_cnt < RETRY_QUERY_CNT);
@@ -3094,7 +2975,7 @@ bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t s
 			if (mysql_stmt_close(it_pstmt->second))
 			{
 				stringstream tmp;
-				tmp << "failed while closing the statement" << ", err=" << mysql_stmt_error(it_pstmt->second);
+				tmp << "failed while closing the statement" << ", err=" << mysql_error(dbp);
 				cout << __func__<< ": " << tmp.str() << endl;
 			}
 		}
@@ -3117,7 +2998,7 @@ bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t s
 			tmp << "mysql_stmt_prepare(), INSERT failed query=" << query << ", err=" << mysql_stmt_error(*pstmt);
 			cout << __func__<< ": " << tmp.str() << endl;
 			if (mysql_stmt_close(*pstmt))
-				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_stmt_error(*pstmt) << endl;
+				cout << __func__<< ": failed while closing the statement" << ", err=" << mysql_error(dbp) << endl;
 			Tango::Except::throw_exception(QUERY_ERROR,tmp.str(),func_name);
 		}
 		if(stmt_size < 20 || stmt_size == batch_size)	//TODO: cache only statements used more frequently
@@ -3134,6 +3015,28 @@ bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, uint32_t s
 		*pstmt = it_pstmt->second;
 	}
 	return true;
+}
+
+void HdbPPMySQL::stmt_close(bool cached, const string &func, MYSQL_STMT	*pstmt)
+{
+	if(!cached)
+	{
+		if(mysql_stmt_close(pstmt))
+		{
+			stringstream tmp;
+			tmp << "failed while closing the statement" << ", err=" << mysql_error(dbp);
+			cout << func << ": " << tmp.str() << endl;
+		}
+	}
+}
+
+string HdbPPMySQL::err_stmt_close(bool cached, const string &func, const string &query, MYSQL_STMT *pstmt)
+{
+	stringstream tmp;
+	tmp << "ERROR in query=" << query << ", err=" << mysql_stmt_error(pstmt);
+	cout << func << ": " << tmp.str() << endl;
+	stmt_close(cached, func, pstmt);
+	return tmp.str();
 }
 
 //=============================================================================
