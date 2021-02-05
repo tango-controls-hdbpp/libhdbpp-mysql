@@ -366,14 +366,14 @@ HdbPPMySQL::HdbPPMySQL(const string &id, const vector<string> &configuration)
 	}
 	if(autodetectschema)
 	{
-		for(vector<Tango::CmdArgType>::iterator it_type=v_type.begin(); it_type!=v_type.end(); it_type++)
+		for(const auto& it_type : v_type)
 		{
-			for(vector<Tango::AttrDataFormat>::iterator it_format=v_format.begin(); it_format!=v_format.end(); it_format++)
+			for(const auto& it_format : v_format)
 			{
-				for(vector<Tango::AttrWriteType>::iterator it_write_type=v_write_type.begin(); it_write_type!=v_write_type.end(); it_write_type++)
+				for(const auto& it_write_type : v_write_type)
 				{
-					string table_name = get_table_name(*it_type, *it_format, *it_write_type);
-					if(*it_format == Tango::SCALAR)
+					string table_name = get_table_name(it_type, it_format, it_write_type);
+					if(it_format == Tango::SCALAR)
 					{
 						bool detected=autodetect_column(table_name, SC_COL_INS_TIME);
 						table_column_map.insert(make_pair(table_name+"_"+SC_COL_INS_TIME, detected));
@@ -411,10 +411,9 @@ HdbPPMySQL::HdbPPMySQL(const string &id, const vector<string> &configuration)
 
 HdbPPMySQL::~HdbPPMySQL()
 {
-	unordered_map<string,MYSQL_STMT *>::iterator it_pstmt;
-	for(it_pstmt = pstmt_map.begin(); it_pstmt != pstmt_map.end(); it_pstmt++)
+	for(auto it_pstmt : pstmt_map)
 	{
-		if (mysql_stmt_close(it_pstmt->second))
+		if (mysql_stmt_close(it_pstmt.second))
 		{
 			stringstream tmp;
 			tmp << "failed while closing the statement" << ", err=" << mysql_error(dbp);
@@ -716,7 +715,7 @@ void HdbPPMySQL::cache_err_id(string error_desc, int &ERR_ID)
 #ifdef _LIB_DEBUG
 	cout << __func__<< ": entering for '"<<error_desc << "' map size=" << attr_ERR_queue.size() << endl;
 #endif
-	unordered_map<string,int>::iterator it = attr_ERR_ID_map.find(error_desc);
+	auto it = attr_ERR_ID_map.find(error_desc);
 	//if not already present in cache, look for ID in the DB
 	if(it == attr_ERR_ID_map.end())
 	{
@@ -2800,7 +2799,7 @@ bool HdbPPMySQL::autodetect_column(string table_name, string column_name)
 
 int HdbPPMySQL::cache_ID(const string &attr, const string &func_name)
 {
-	unordered_map<string,int>::iterator it = attr_ID_map.find(attr);
+	auto it = attr_ID_map.find(attr);
 	//if not already present in cache, look for ID in the DB
 	if(it == attr_ID_map.end())
 	{
@@ -2837,10 +2836,9 @@ bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, unsigned i
 		cout << func_name<< ": changed mysql_thread_id from " << db_mti << " to " << mti << endl;
 #endif
 		db_mti = mti;
-		unordered_map<string,MYSQL_STMT *>::iterator it_pstmt;
-		for(it_pstmt = pstmt_map.begin(); it_pstmt != pstmt_map.end(); it_pstmt++)
+		for(auto it_pstmt : pstmt_map)
 		{
-			if (mysql_stmt_close(it_pstmt->second))
+			if (mysql_stmt_close(it_pstmt.second))
 			{
 				stringstream tmp;
 				tmp << "failed while closing the statement" << ", err=" << mysql_error(dbp);
@@ -2849,7 +2847,7 @@ bool HdbPPMySQL::cache_pstmt(const string &query, MYSQL_STMT **pstmt, unsigned i
 		}
 		pstmt_map.clear();
 	}
-	unordered_map<string,MYSQL_STMT *>::iterator it_pstmt = pstmt_map.find(query);
+	auto it_pstmt = pstmt_map.find(query);
 	if(it_pstmt == pstmt_map.end())
 	{
 		*pstmt = mysql_stmt_init(dbp);
