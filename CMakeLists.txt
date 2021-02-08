@@ -9,7 +9,7 @@ if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
 endif()
 
 # Start Build Config -----------------------------------
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.11)
 set(CMAKE_SKIP_RPATH true)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_COLOR_MAKEFILE ON)
