@@ -1008,8 +1008,6 @@ void HdbPPMySQL::prepare_insert_event(vector<Tango::EventData *> data, const Hdb
 	//int max_dim_x = ev_data_type.max_dim_x;
 	//int max_dim_y = ev_data_type.max_dim_y;
 
-	vector<bool> isNulls;
-
 	for(const auto& datum : data)
 	{
 		event_data_param event_datum;
@@ -1121,14 +1119,13 @@ void HdbPPMySQL::prepare_insert_event(vector<Tango::EventData *> data, const Hdb
 
 				vector<event_values_param<Tango::DevState> > values;
 				values.reserve(event_data.size());
-				size_t ind=0;
 				for(const auto& event_datum : event_data)
 				{
 					event_values_param<Tango::DevState> value;
 					value.param = event_datum.param;
 					// We cannot use the extract_read() method for the "State" attribute
 					Tango::DevState	st;
-					if(!isNulls.at(ind))
+					if(!event_datum.param.isNull)
 					{
 						*event_datum.data->attr_value >> st;
 					}
