@@ -47,7 +47,12 @@ include(GNUInstallDirs)
 message(STATUS "Searching for libraries...")
 
 include(FindPkgConfig)
-pkg_check_modules(LIBMYSQLCLIENT REQUIRED mysqlclient)
+pkg_search_module(LIBMYSQLCLIENT REQUIRED mysqlclient libmariadb>=3)
+if(LIBMYSQLCLIENT_FOUND)
+  list(GET LIBMYSQLCLIENT_LIBRARIES 0 LIBNAME)
+  list(GET LIBMYSQLCLIENT_LINK_LIBRARIES 0 LIBPATH)
+  message(STATUS "Found ${LIBNAME} version ${LIBMYSQLCLIENT_VERSION} at: " ${LIBPATH})
+endif()
 
 foreach(FLAG ${LIBMYSQLCLIENT_CFLAGS_OTHER})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FLAG}")

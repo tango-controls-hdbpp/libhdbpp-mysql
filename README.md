@@ -44,7 +44,7 @@ Ensure the development version of the dependencies are installed. These are as f
 * Tango Controls 9 or higher - either via debian package or source install.
 * omniORB release 4 - libomniorb4 and libomnithread.
 * libzmq - libzmq3-dev or libzmq5-dev.
-* MySQL client library - libmysqlclient-dev or libmariadb-dev
+* MySQL client library - libmysqlclient-dev or libmariadb-dev (>=3)
 
 ### Build
 
