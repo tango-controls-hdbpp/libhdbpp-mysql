@@ -113,7 +113,7 @@ template <typename T> void bind_value(MYSQL_BIND &log_bind, enum_field_types mys
 
 template <> void bind_value(MYSQL_BIND &log_bind, enum_field_types mysql_value_type , const string &value_data, unsigned long &value_data_len, my_bool &is_null, bool is_unsigned)
 {
-	log_bind.buffer_type= mysql_value_type; //MYSQL_TYPE_VARCHAR
+	log_bind.buffer_type= mysql_value_type; //MYSQL_TYPE_STRING
 	log_bind.buffer= (void *)value_data.c_str();
 	log_bind.is_null= &is_null;
 	value_data_len=value_data.length();
@@ -786,7 +786,7 @@ int HdbPPMySQL::insert_error(string error_desc, int &ERR_ID)
 
 	memset(plog_bind, 0, sizeof(plog_bind));
 
-	plog_bind[0].buffer_type= MYSQL_TYPE_VARCHAR;
+	plog_bind[0].buffer_type= MYSQL_TYPE_STRING;
 	plog_bind[0].buffer= (void *)param_data[0].c_str();
 	plog_bind[0].is_null= 0;
 	plog_bind[0].length= &param_data_len[0];
@@ -1108,7 +1108,7 @@ void HdbPPMySQL::prepare_insert_event(vector<Tango::EventData *> data, const Hdb
 		}
 		case Tango::DEV_STRING:
 		{
-			extract_and_store<string>(event_data, data_type, data_format, write_type, MYSQL_TYPE_VARCHAR, false/*is_unsigned*/);
+			extract_and_store<string>(event_data, data_type, data_format, write_type, MYSQL_TYPE_STRING, false/*is_unsigned*/);
 			break;
 		}
 		case Tango::DEV_STATE: //TODO batch insertion!!!!!!!!!!!!!
@@ -1262,47 +1262,47 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 		plog_bind[1].is_null= 0;
 		plog_bind[1].length= 0;
 
-		plog_bind[2].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[2].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[2].buffer= (void *)param_data[0].c_str();
 		plog_bind[2].is_null= 0;
 		plog_bind[2].length= &param_data_len[0];
 
-		plog_bind[3].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[3].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[3].buffer= (void *)param_data[1].c_str();
 		plog_bind[3].is_null= 0;
 		plog_bind[3].length= &param_data_len[1];
 
-		plog_bind[4].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[4].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[4].buffer= (void *)param_data[2].c_str();
 		plog_bind[4].is_null= 0;
 		plog_bind[4].length= &param_data_len[2];
 
-		plog_bind[5].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[5].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[5].buffer= (void *)param_data[3].c_str();
 		plog_bind[5].is_null= 0;
 		plog_bind[5].length= &param_data_len[3];
 
-		plog_bind[6].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[6].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[6].buffer= (void *)param_data[4].c_str();
 		plog_bind[6].is_null= 0;
 		plog_bind[6].length= &param_data_len[4];
 
-		plog_bind[7].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[7].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[7].buffer= (void *)param_data[5].c_str();
 		plog_bind[7].is_null= 0;
 		plog_bind[7].length= &param_data_len[5];
 
-		plog_bind[8].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[8].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[8].buffer= (void *)param_data[6].c_str();
 		plog_bind[8].is_null= 0;
 		plog_bind[8].length= &param_data_len[6];
 
-		plog_bind[9].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[9].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[9].buffer= (void *)param_data[7].c_str();
 		plog_bind[9].is_null= 0;
 		plog_bind[9].length= &param_data_len[7];
 
-		plog_bind[10].buffer_type= MYSQL_TYPE_VARCHAR;
+		plog_bind[10].buffer_type= MYSQL_TYPE_STRING;
 		plog_bind[10].buffer= (void *)param_data[8].c_str();
 		plog_bind[10].is_null= 0;
 		plog_bind[10].length= &param_data_len[8];
