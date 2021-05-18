@@ -894,7 +894,7 @@ void HdbPPMySQL::insert_events(vector<tuple<Tango::EventData *, HdbEventDataType
 		throw;
 	}
 	mysql_autocommit(dbp, 1);
-	mysql_commit(dbp); //TODO: NEEDED?
+	//mysql_commit(dbp); //TODO: NEEDED?
 #ifdef _LIB_DEBUG
 	//cout << __func__<< ": exiting... "<< endl;
 #endif
