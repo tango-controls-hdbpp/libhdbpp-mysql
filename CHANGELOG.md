@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.0.0]
+
+### Added
+
+* Support for batch insertion.
+
+### Changed
+
+* Modified build system to use fetch libhdbpp and include it when requested.
+* Made compatible with new libhdbpp (namespace, function and path changes)
+* Code refactoring
+* Align release with library version
 
 ## [1.2.1] - 2020-08-10
 
@@ -19,8 +30,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * Updated etc/hdb++_mysql_migrate_array_json.sql
 * Updated README.md.
 
-### Removed
-
 ## [1.2.0] - 2018-04-04
 
 ### Added
@@ -33,8 +42,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * LibHdb++MySQL.cpp: added json_array configuration key to store array elements in a JSON field of a single row
 * Updated README.md.
 
-### Removed
-
 ## [1.1.0] - 2018-03-02
 
 ### Added
@@ -45,9 +52,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 * LibHdb++MySQL.*: added ignore_duplicates configuration key to ignore duplicated key (att_conf_id,data_time) when inserting data in InnoDB schema
 * Updated README.md.
-
-### Removed
-
 
 ## [1.0.0] - 2017-09-28
 

@@ -3,12 +3,31 @@
 [![TangoControls](https://img.shields.io/badge/-Tango--Controls-7ABB45.svg?style=flat&logo=%20data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAACAAAAAkCAYAAADo6zjiAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAsFJREFUWIXtl01IFVEYht9zU%2FvTqOxShLowlOgHykWUGEjUKqiocB1FQURB0KJaRdGiaFM7gzZRLWpTq2olhNQyCtpYCP1gNyIoUTFNnxZzRs8dzvw4Q6564XLnfOf73vedc2a%2BmZEKALgHrC3CUUR8CxZFeEoFalsdM4uLmMgFoIlZLJp3A9ZE4S2oKehhlaR1BTnyg2ocnW%2FxsxEDhbYij4EPVncaeASMAavnS%2FwA8NMaqACNQCew3f4as3KZOYh2SuqTVJeQNiFpn6QGSRVjTH9W%2FiThvcCn6H6n4BvQDvQWFT%2BSIDIFDAKfE3KOAQeBfB0XGPeQvgE67P8ZoB44DvTHmFgJdOQRv%2BUjc%2BavA9siNTWemgfA3TwGquCZ3w8szFIL1ALngIZorndvgJOR0GlP2gtJkzH%2Bd0fGFxW07NqY%2FCrx5QRXcYjbCbmxF1dkBSbi8kpACah3Yi2Sys74cVyxMWY6bk5BTwgRe%2BYlSzLmxNpU3aBeJogk4XWWpJKUeiap3RJYCpQj4QWZDQCuyIAk19Auj%2BAFYGZZjTGjksaBESB8P9iaxUBIaJzjZcCQcwHdj%2BS2Al0xPOeBYYKHk4vfmQ3Y8YkIwRUb7wQGU7j2ePrA1URx93ayd8UpD8klyPbSQfCOMIO05MbI%2BDvwBbjsMdGTwlX21AAMZzEerkaI9zFkP4AeYCPBg6gNuEb6I%2FthFgN1KSQupqzoRELOSed4DGiJala1UmOMr2U%2Bl%2FTWEy9Japa%2Fy41IWi%2FJ3d4%2FkkaAw0Bz3AocArqApwTvet3O3GbgV8qqjAM7bf4N4KMztwTodcYVyelywKSCD5V3xphNXoezuTskNSl4bgxJ6jPGVJJqbN0aSV%2Bd0M0aO7FCs19Jo2lExphXaTkxdRVgQFK7DZVDZ8%2BcpdmQh3wuILh7ut3AEyt%2B51%2BL%2F0cUfwFOX0t0StltmQAAAABJRU5ErkJggg%3D%3D)](http://www.tango-controls.org) [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0) [![GitHub release](https://img.shields.io/github/release/tango-controls-hdbpp/libhdbpp-mysql.svg)](https://github.com/tango-controls-hdbpp/libhdbpp-mysql/releases)   [![Download](https://api.bintray.com/packages/tango-controls/debian/libhdb%2B%2Bmysql6/images/download.svg)](https://bintray.com/tango-controls/debian/libhdb%2B%2Bmysql6/_latestVersion)
 
 
+- [liphdbpp-mysql](#liphdbpp-mysql)
+  - [Version](#Version)
+  - [Documentation](#Documentation)
+  - [Building](#Building)
+    - [Dependencies](#Dependencies)
+    - [Build](#Build)
+    - [Build Flags](#Build-Flags)
+  - [Installation](#Installation)
+  - [DB Schema](#DB-Schema)
+    - [Partition management](#Partition-management)
+    - [MyIsam to InnoDB schema migration](#MyIsam-to-InnoDB-schema-migration)
+    - [JSON arrays schema migration](#JSON-arrays-schema-migration)
+    - [TTL: per attribute old data deletion](#TTL:-per-attribute-old-data-deletion)
+  - [Configuration](#Configuration)
+    - [Library Configuration Parameters](#Library-Configuration-Parameters)
+    - [Configuration Example](#Configuration-Example)
+  - [License](#License)
+
+
 
 Library for HDB++ implementing MySQL schema
 
 ## Version
 
-The current release version is 1.2.0
+The current release version is 7.0.0
 
 ## Documentation
 
@@ -21,10 +40,11 @@ The current release version is 1.2.0
 
 Ensure the development version of the dependencies are installed. These are as follows:
 
-* HDB++ library libhdbpp
+* HDB++ library libhdbpp (downloaded automatically by cmake if not found)
 * Tango Controls 9 or higher - either via debian package or source install.
 * omniORB release 4 - libomniorb4 and libomnithread.
 * libzmq - libzmq3-dev or libzmq5-dev.
+* MySQL client library - libmysqlclient-dev or libmariadb-dev (>=3)
 
 ### Build
 
@@ -43,29 +63,27 @@ cmake ..
 make
 ```
 
-If HDB++ library libhdbpp is not installed in system paths, CMAKE_INCLUDE_PATH and CMAKE_LIBRARY_PATH should be set to point to the right location. This can be set on the command line at configuration time, i.e.:
+If HDB++ library libhdbpp is not installed in system paths, CMAKE_PREFIX_PATH can be used to point to non standard install location, or CMAKE_INCLUDE_PATH should be set to point to the sources location. If neither of the previous condition is true, cmake will automatically fetch the dependency from the github repository.
+CMake flags can be set on the command line at configuration time, i.e.:
 
 ```bash
-cmake -DCMAKE_INCLUDE_PATH=/path/to/local/install/of/libhdbpp/headers -DCMAKE_LIBRARY_PATH=/path/to/local/install/of/libhdbpp/library .. 
+cmake -DCMAKE_INCLUDE_PATH=/path/to/local/install/of/libhdbpp/headers .. 
 ```
 
 The pkg-config path can also be set with the cmake argument CMAKE_PREFIX_PATH. This can be set on the command line at configuration time, i.e.:
 
 ```bash
-cmake -DCMAKE_PREFIX_PATH=/non/standard/tango/install/location .. 
+cmake -DCMAKE_PREFIX_PATH=/non/standard/dependency/install/location .. 
 ```
 
-## Build Flags
-
-The following build flags are available
-
-### Standard CMake Flags
+### Build Flags
 
 The following is a list of common useful CMake flags and their use:
 
 | Flag | Setting | Description |
 |------|-----|-----|
 | CMAKE_INSTALL_PREFIX | PATH | Standard CMake flag to modify the install prefix. |
+| CMAKE_PREFIX_PATH | PATH[S] | Standard CMake flag to add paths where to look for installed dependencies. |
 | CMAKE_INCLUDE_PATH | PATH[S] | Standard CMake flag to add include paths to the search path. |
 | CMAKE_LIBRARY_PATH | PATH[S] | Standard CMake flag to add paths to the library search path |
 | CMAKE_BUILD_TYPE | Debug/Release | Build type to produce |
@@ -90,6 +108,7 @@ A primary key (att_conf_id, data_time) is created for every data table, with thi
 At the same time with this primary key duplicated of data_time with the same att_conf_id are not allowed. To ignore primary key duplication errors, the 'ignore_duplicates' configuration key can be set to 1.
 The third file, as the second one, uses InnoDB as the DB engine, 2 DATETIME columns and partitioning. But for array attributes, instead of storing every element of the array in a single row, stores all the elements of the array in a JSON field.
 The use of JSON arrays needs to be enabled with json_array=1 in the LibConfiguration device/class property.
+DB Schema, user creation script and partitioning procedure can be found in [hdbpp-mysql-project](https://github.com/tango-controls-hdbpp/hdbpp-mysql-project) under resources/schema.
 
 ### Partition management
 
@@ -131,6 +150,43 @@ The file etc/create_hdb++_mysql_delete_attr_ttl_procedure.sql can be used to cre
 * deleting values in MySQL is always a heavy operation
 * if MyISAM is used as DB engine, holes are left in tables after deletion. Tables with holes needs to be optimized (which can take quite a long time), otherwise performances degrade and an exclusive lock on the whole table needs to be taken for every operation (also for inserts).
 
+## Configuration
+
+This is the configuration to use for [event subscribers](https://github.com/tango-controls-hdbpp/hdbpp-es) to use this backend
+
+### Library Configuration Parameters
+
+Configuration parameters are as follows:
+
+| Parameter | Mandatory | Default | Description |
+|------|-----|-----|-----|
+| libname | true | None | Must be "libhdb++mysql.so", a specific version or the full path can be specified |
+| host | true | None | MySQL/MariaDB hostname or IP address |
+| user | true | None | MySQL/MariaDB username |
+| password | true | None | MySQL/MariaDB password |
+| dbname | true | None | MySQL/MariaDB db name (e.g. hdbpp) |
+| port | true | None | MySQL/MariaDB port (e.g. 3306) |
+| lightschema | false | 0 | When set to 1 (true) insert_time and rcv_time are not stored. When set to 0 (false) presence of insert_time, rcv_time, quality, error_desc_id columns are auto-detected at library startup per table |
+| ignore_duplicates | false | 0 | Schema optimized for InnoDB has the primary key on (att_conf_id,data_time), set this property to 1 to not have duplicates on (att_conf_id,data_time) signalled as storing errors. |
+| json_array | false | 0 | When set to 1 use a JSON array to store Spectrum/Image data types instead of one row per array element. |
+| batch_size | false | 1000 | Specify maximum batch size for insertion. |
+
+
+### Configuration Example
+
+Short example LibConfiguration property value on an EventSubscriber. You will HAVE to change the various parts to match your system:
+
+```
+host=mysql_hostname
+user=hdbpprw
+password=hdbpprw_pwd
+dbname=hdbpp
+port=3306
+ignore_duplicates=1
+json_array=1
+batch_size=10000
+libname=libhdb++mysql.so
+```` 
 
 ## License
 
