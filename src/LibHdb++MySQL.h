@@ -138,6 +138,7 @@
 #define PARAM_COL_ARCHIVEABSCHANGE		"archive_abs_change"
 #define PARAM_COL_ARCHIVEPERIOD			"archive_period"
 #define PARAM_COL_DESCRIPTION			"description"
+#define PARAM_COL_ENUM_LABELS			"enum_labels"
 
 //######## INFORMATION SCHEMA ########
 #define INFORMATION_SCHEMA				"INFORMATION_SCHEMA"

@@ -15,6 +15,7 @@
     - [Partition management](#Partition-management)
     - [MyIsam to InnoDB schema migration](#MyIsam-to-InnoDB-schema-migration)
     - [JSON arrays schema migration](#JSON-arrays-schema-migration)
+    - [DevEnum: archiving of DevEnum labels](#DevEnum:-archiving-of-DevEnum-labels)
     - [TTL: per attribute old data deletion](#TTL:-per-attribute-old-data-deletion)
   - [Configuration](#Configuration)
     - [Library Configuration Parameters](#Library-Configuration-Parameters)
@@ -27,7 +28,7 @@ Library for HDB++ implementing MySQL schema
 
 ## Version
 
-The current release version is 7.0.0
+The current release version is 7.1.0
 
 ## Documentation
 
@@ -136,6 +137,10 @@ To migrate existing data from the schema using InnoDB and partitiong but multipl
 * migrate using the appropriate queries (e.g. 'INSERT IGNORE INTO att_array_devboolean_ro (att_conf_id,data_time,recv_time,dim_x_r, dim_y_r,value_r,quality,att_error_desc_id) SELECT att_conf_id, data_time, recv_time, dim_x_r, dim_y_r, CONCAT('[',GROUP_CONCAT(value_r SEPARATOR ','),']'), quality, att_error_desc_id from att_array_devboolean_ro_bk GROUP BY att_conf_id,data_time;')
 
 The file etc/hdb++_mysql_migrate_array_json.sql can be used for these operations.
+
+### DevEnum: archiving of DevEnum labels
+
+Support for DevEnum labels was added in a second time. If the column enum_labels in the table att_parameter is not present, it can be added executing the sql in the file etc/update_devenum_hdb++_mysql_innodb_json.sql
 
 ### TTL: per attribute old data deletion
 
