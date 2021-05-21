@@ -251,6 +251,7 @@ HdbPPMySQL::HdbPPMySQL(const string &id, const vector<string> &configuration)
 	v_type.push_back(Tango::DEV_STRING);
 	v_type.push_back(Tango::DEV_STATE);
 	v_type.push_back(Tango::DEV_ENCODED);
+	v_type.push_back(Tango::DEV_ENUM);
 
 	v_format.push_back(Tango::SCALAR);
 	v_format.push_back(Tango::SPECTRUM);
@@ -406,6 +407,8 @@ HdbPPMySQL::HdbPPMySQL(const string &id, const vector<string> &configuration)
 		}
 		bool detected=autodetect_column(PARAM_TABLE_NAME, PARAM_COL_INS_TIME);
 		table_column_map.insert(make_pair(string(PARAM_TABLE_NAME)+"_"+PARAM_COL_INS_TIME, detected));
+		detected=autodetect_column(PARAM_TABLE_NAME, PARAM_COL_ENUM_LABELS);
+		table_column_map.insert(make_pair(string(PARAM_TABLE_NAME)+"_"+PARAM_COL_ENUM_LABELS, detected));
 	}
 }
 
@@ -1178,6 +1181,7 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 	ostringstream query_str;
 
 	bool detected_insert_time = true;
+	bool detected_enum_labels = true;
 	if(autodetectschema)
 	{
 		const auto it = table_column_map.find(string(PARAM_TABLE_NAME)+"_"+PARAM_COL_INS_TIME);
@@ -1185,6 +1189,11 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 			detected_insert_time = it->second;
 		else
 			detected_insert_time = false;
+		const auto it2 = table_column_map.find(string(PARAM_TABLE_NAME)+"_"+PARAM_COL_ENUM_LABELS);
+		if(it2!=table_column_map.end())
+			detected_enum_labels = it2->second;
+		else
+			detected_enum_labels = false;
 	}
 
 	if(!ignoreduplicates)
@@ -1200,7 +1209,12 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 	query_str << PARAM_COL_EV_TIME << "," <<
 			PARAM_COL_LABEL << "," << PARAM_COL_UNIT << "," << PARAM_COL_STANDARDUNIT << "," <<
 			PARAM_COL_DISPLAYUNIT << "," << PARAM_COL_FORMAT << "," << PARAM_COL_ARCHIVERELCHANGE << "," <<
-			PARAM_COL_ARCHIVEABSCHANGE << "," << PARAM_COL_ARCHIVEPERIOD << "," << PARAM_COL_DESCRIPTION << ")";
+			PARAM_COL_ARCHIVEABSCHANGE << "," << PARAM_COL_ARCHIVEPERIOD << "," << PARAM_COL_DESCRIPTION;
+
+	if(detected_enum_labels)
+		query_str << "," <<	PARAM_COL_ENUM_LABELS;
+		
+	query_str << ")";
 
 	query_str << " VALUES (?,";
 
@@ -1210,17 +1224,24 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 	query_str << "FROM_UNIXTIME(?)," <<
 			"?,?,?," <<
 			"?,?,?," <<
-			"?,?,?)" ;
+			"?,?,?";
+
+	if(detected_enum_labels)
+		query_str << ",?";
+
+	query_str << ")" ;
+
 	unsigned int retry_cnt=0;
 	do
 	{
 		retry_cnt++;
 		MYSQL_STMT	*pstmt{nullptr};
-		MYSQL_BIND	plog_bind[11];
+		MYSQL_BIND	plog_bind[12];
 		double		double_data;
 		int			int_data;
-		string		param_data[9];
-		unsigned long param_data_len[9];
+		ostringstream ss_enum_labels;
+		string		param_data[10];
+		unsigned long param_data_len[10];
 		bool cached = cache_pstmt(query_str.str(),&pstmt,1,__func__);
 		int_data = ID;
 		double_data = ev_time;
@@ -1250,6 +1271,21 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 		}
 		param_data_len[8] = param_data[8].length();
 
+		if(detected_enum_labels)
+		{
+			ss_enum_labels << "[";
+			for(auto iter = data->attr_conf->enum_labels.begin(); iter != data->attr_conf->enum_labels.end(); ++iter)
+			{
+				ss_enum_labels << to_json_value(*iter);
+				if(iter != data->attr_conf->enum_labels.end()-1)
+				{
+					ss_enum_labels << ",";
+				}
+			}
+			ss_enum_labels << "]";
+			param_data[9] = ss_enum_labels.str();
+			param_data_len[9] = param_data[9].length();
+		}
 		memset(plog_bind, 0, sizeof(plog_bind));
 
 		plog_bind[0].buffer_type= MYSQL_TYPE_LONG;
@@ -1306,6 +1342,12 @@ void HdbPPMySQL::insert_param_event(Tango::AttrConfEventData *data, const HdbEve
 		plog_bind[10].buffer= (void *)param_data[8].c_str();
 		plog_bind[10].is_null= 0;
 		plog_bind[10].length= &param_data_len[8];
+
+		plog_bind[11].buffer_type= MYSQL_TYPE_JSON;
+		plog_bind[11].buffer= (void *)param_data[9].c_str();
+		plog_bind[11].is_null= 0;
+		plog_bind[11].length= &param_data_len[9];
+
 		if (mysql_stmt_bind_param(pstmt, plog_bind))
 		{
 			stringstream tmp;
